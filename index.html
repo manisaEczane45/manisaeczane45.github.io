@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manisa Eczaneleri 45 - Cari Takip</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="login-screen" class="screen">
+  <form id="login-form" class="login-card">
+    <h1>Manisa Eczaneleri 45</h1>
+    <p class="subtitle">Cari Takip Sistemi</p>
+    <label for="login-id">Eczane ID</label>
+    <input type="text" id="login-id" autocomplete="username" required>
+    <label for="login-password">Şifre</label>
+    <input type="password" id="login-password" autocomplete="current-password" required>
+    <button type="submit">Giriş Yap</button>
+    <p id="login-error" class="error-text"></p>
+  </form>
+</div>
+
+<div id="app-screen" class="screen hidden">
+  <header class="topbar">
+    <div>
+      <h1>Manisa Eczaneleri 45</h1>
+      <p class="subtitle">Yemek Cari Takip</p>
+    </div>
+    <div class="topbar-right">
+      <span id="current-user-label"></span>
+      <button id="logout-btn" class="secondary">Çıkış</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Eczaneler ve Cari Bakiyeler</h2>
+      <table class="pharmacy-table">
+        <thead>
+          <tr>
+            <th>Eczane</th>
+            <th>Güncel Cari (TL)</th>
+          </tr>
+        </thead>
+        <tbody id="pharmacy-list">
+          <tr><td colspan="2" class="muted">Yükleniyor...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="admin-section" class="card hidden">
+      <h2>Admin Paneli</h2>
+      <table class="pharmacy-table">
+        <thead>
+          <tr>
+            <th>Eczane</th>
+            <th>Toplam Cari (TL)</th>
+            <th>Ödenen Cari (TL)</th>
+            <th>Güncel Cari (TL)</th>
+            <th>İşlemler</th>
+          </tr>
+        </thead>
+        <tbody id="admin-pharmacy-list">
+          <tr><td colspan="5" class="muted">Yükleniyor...</td></tr>
+        </tbody>
+      </table>
+      <p id="admin-error" class="error-text"></p>
+    </section>
+
+    <section class="card">
+      <h2>İşlem Geçmişi</h2>
+      <p class="muted small">Tüm bakiye değişiklikleri şeffaflık için burada tarihiyle listelenir.</p>
+      <ul id="transaction-log" class="tx-log">
+        <li class="muted">Yükleniyor...</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<template id="admin-row-template">
+  <tr>
+    <td class="ph-name"></td>
+    <td class="ph-total"></td>
+    <td class="ph-paid"></td>
+    <td class="ph-net"></td>
+    <td class="ph-actions">
+      <div class="action-group">
+        <input type="number" class="total-input" placeholder="Yeni toplam cari" step="0.01">
+        <button class="set-total-btn secondary">Toplam Cariyi Güncelle</button>
+      </div>
+      <div class="action-group">
+        <input type="number" class="payment-input" placeholder="Ödeme tutarı (+kesildi / -iade)" step="0.01">
+        <button class="add-payment-btn">Kaydet</button>
+      </div>
+    </td>
+  </tr>
+</template>
+
+<script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

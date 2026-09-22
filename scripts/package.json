@@ -1,0 +1,13 @@
+{
+  "name": "manisaeczane45-seed",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Firebase Auth kullanicilarini ve Firestore baslangic verisini olusturan tek seferlik kurulum scripti. GitHub Pages ile birlikte deploy EDILMEZ, sadece lokalde calistirilir.",
+  "type": "commonjs",
+  "scripts": {
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}
