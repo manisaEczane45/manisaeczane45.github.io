@@ -3,12 +3,12 @@
 // Bu değerler (apiKey dahil) gizli değildir, tarayıcıya gönderilmesi normaldir;
 // gerçek güvenlik Firestore güvenlik kuralları (firestore.rules) ile sağlanır.
 export const firebaseConfig = {
-  apiKey: "TODO_API_KEY",
-  authDomain: "TODO_PROJECT_ID.firebaseapp.com",
-  projectId: "TODO_PROJECT_ID",
-  storageBucket: "TODO_PROJECT_ID.appspot.com",
-  messagingSenderId: "TODO_SENDER_ID",
-  appId: "TODO_APP_ID"
+  apiKey: "AIzaSyDE8Re1Xn31eYNg1DAivvizefOoN3gSacM",
+  authDomain: "manisaeczane45-1bbfe.firebaseapp.com",
+  projectId: "manisaeczane45-1bbfe",
+  storageBucket: "manisaeczane45-1bbfe.firebasestorage.app",
+  messagingSenderId: "105209289617",
+  appId: "1:105209289617:web:c6a5e1bc16802544f69830"
 };
 
 // Eczane giriş ID'lerini Firebase Auth e-postasına çevirmek için kullanılan sabit alan adı.
