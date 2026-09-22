@@ -139,6 +139,9 @@ h1, h2 { font-weight: 800; letter-spacing: -0.02em; }
 .btn-secondary { background: #f1f2f6; color: var(--text); }
 .btn-secondary:hover { background: #e5e7eb; }
 
+.btn-danger { background: var(--negative-tint); color: var(--negative); }
+.btn-danger:hover { background: #fee2e2; }
+
 .error-text {
   color: var(--negative);
   font-size: 0.85rem;
@@ -228,6 +231,14 @@ main {
 
 .section-head { margin-bottom: 16px; }
 .section-head h2 { margin: 0 0 6px; font-size: 1.15rem; }
+
+.section-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; line-height: 1.5; }

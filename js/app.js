@@ -1,11 +1,11 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=2";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=3";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, onSnapshot, query, orderBy, limit,
-  runTransaction, addDoc, serverTimestamp
+  runTransaction, addDoc, serverTimestamp, getDocs, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
@@ -22,6 +22,7 @@ const pharmacyCardsEl = document.getElementById("pharmacy-cards");
 const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
+const clearLogBtn = document.getElementById("clear-log-btn");
 const pharmacyCardTemplate = document.getElementById("pharmacy-card-template");
 const adminCardTemplate = document.getElementById("admin-card-template");
 
@@ -96,6 +97,7 @@ onAuthStateChanged(auth, async (user) => {
   appScreen.classList.remove("hidden");
   currentUserLabel.textContent = user.email.split("@")[0];
   adminTabBtn.classList.toggle("hidden", !isAdmin);
+  clearLogBtn.classList.toggle("hidden", !isAdmin);
   activateTab("pharmacies");
 
   subscribePharmacies();
@@ -242,3 +244,25 @@ async function addPayment(pharmacyId, pharmacyName, amount) {
     console.error(err);
   }
 }
+
+clearLogBtn.addEventListener("click", async () => {
+  if (!isAdmin) return;
+  const confirmed = confirm("Tüm işlem geçmişi kalıcı olarak silinecek. Emin misiniz?");
+  if (!confirmed) return;
+  clearLogBtn.disabled = true;
+  try {
+    const snap = await getDocs(collection(db, "transactions"));
+    const docs = snap.docs;
+    const CHUNK_SIZE = 400;
+    for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + CHUNK_SIZE).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  } catch (err) {
+    alert("İşlem geçmişi silinemedi.");
+    console.error(err);
+  } finally {
+    clearLogBtn.disabled = false;
+  }
+});

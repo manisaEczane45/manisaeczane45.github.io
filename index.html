@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 
@@ -74,9 +74,12 @@
     </section>
 
     <section id="tab-panel-log" class="tab-panel hidden">
-      <div class="section-head">
-        <h2>İşlem Geçmişi</h2>
-        <p class="muted small">Tüm bakiye değişiklikleri şeffaflık için burada tarihiyle listelenir.</p>
+      <div class="section-head section-head-row">
+        <div>
+          <h2>İşlem Geçmişi</h2>
+          <p class="muted small">Tüm bakiye değişiklikleri şeffaflık için burada tarihiyle listelenir.</p>
+        </div>
+        <button type="button" id="clear-log-btn" class="btn btn-danger hidden">Geçmişi Temizle</button>
       </div>
       <ul id="transaction-log" class="tx-log">
         <li class="muted">Yükleniyor...</li>
@@ -121,6 +124,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=2"></script>
+<script type="module" src="js/app.js?v=3"></script>
 </body>
 </html>
