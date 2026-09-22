@@ -88,6 +88,9 @@ function subscribePharmacies() {
     if (isAdmin) renderAdminList();
   }, (err) => {
     pharmacyListEl.innerHTML = `<tr><td colspan="2" class="error-text">Veriler yüklenemedi.</td></tr>`;
+    if (isAdmin) {
+      adminPharmacyListEl.innerHTML = `<tr><td colspan="5" class="error-text">Veriler yüklenemedi.</td></tr>`;
+    }
     console.error(err);
   });
 }

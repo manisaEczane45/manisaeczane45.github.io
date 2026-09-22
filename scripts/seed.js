@@ -2,10 +2,15 @@
  * Tek seferlik kurulum scripti.
  *
  * Ne yapar:
- *  - 18 eczane icin Firebase Auth kullanicisi (ecz01..ecz18) ve Firestore
- *    dokumani (pharmacies/ecz01..ecz18) olusturur, rastgele sifre atar.
+ *  - PHARMACY_NAMES listesindeki her eczane icin, isminden turetilen bir ID
+ *    (orn. "Nar Eczanesi" -> "nar") ile Firebase Auth kullanicisi ve Firestore
+ *    dokumani (pharmacies/{id}) olusturur. Sifre "{id}4545" seklindedir,
+ *    kullanicilar sonradan kendi sifrelerini degistirebilir (henuz arayuzde yok).
  *  - 1 admin kullanicisi (admin) olusturur ve ona { admin: true } custom
  *    claim'i atar (Firestore kurallari bu claim'i kontrol eder).
+ *  - Halihazirda var olan kullanicilarin sifresine DOKUNMAZ, sadece yeni
+ *    olusturulanlar icin sifre atar (script tekrar calistirildiginda
+ *    kullanimdaki sifreler bozulmaz).
  *  - Uretilen ID/sifre listesini scripts/credentials.txt dosyasina yazar.
  *
  * Nasil calistirilir:
@@ -68,14 +73,28 @@ function generatePassword() {
   return crypto.randomBytes(9).toString("base64").replace(/[+/=]/g, "").slice(0, 10);
 }
 
+// Turkce karakterleri ASCII'ye cevirip ID/sifre uretmek icin kullanilir.
+function slugify(name) {
+  const map = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" };
+  const withoutSuffix = name.replace(/eczanesi/i, "").trim();
+  let result = "";
+  for (const ch of withoutSuffix.toLowerCase()) {
+    result += map[ch] || ch;
+  }
+  return result.replace(/[^a-z0-9]/g, "");
+}
+
+// Kullanici zaten varsa sifresine DOKUNMAZ (aksi halde seed.js her calistirildiginda
+// halihazirda kullanimda olan sifreler gecersiz olurdu). Sifre sadece ilk olusturmada atanir.
 async function upsertUser(email, password, extraClaims) {
   let userRecord;
+  let created = false;
   try {
     userRecord = await auth.getUserByEmail(email);
-    await auth.updateUser(userRecord.uid, { password });
   } catch (err) {
     if (err.code === "auth/user-not-found") {
       userRecord = await auth.createUser({ email, password, emailVerified: true });
+      created = true;
     } else {
       throw err;
     }
@@ -83,7 +102,7 @@ async function upsertUser(email, password, extraClaims) {
   if (extraClaims) {
     await auth.setCustomUserClaims(userRecord.uid, extraClaims);
   }
-  return userRecord;
+  return { userRecord, created };
 }
 
 async function main() {
@@ -95,26 +114,34 @@ async function main() {
   // Admin kullanicisi
   const adminId = "admin";
   const adminPassword = generatePassword();
-  await upsertUser(`${adminId}@${LOGIN_EMAIL_DOMAIN}`, adminPassword, { admin: true });
-  lines.push(`ADMIN  | ID: ${adminId}  | Sifre: ${adminPassword}`);
+  const adminResult = await upsertUser(`${adminId}@${LOGIN_EMAIL_DOMAIN}`, adminPassword, { admin: true });
+  lines.push(
+    adminResult.created
+      ? `ADMIN  | ID: ${adminId}  | Sifre: ${adminPassword}`
+      : `ADMIN  | ID: ${adminId}  | Sifre: (mevcut sifre korundu, degismedi)`
+  );
   lines.push("");
 
   // Eczaneler
-  for (let i = 1; i <= PHARMACY_NAMES.length; i++) {
-    const id = `ecz${String(i).padStart(2, "0")}`;
-    const password = generatePassword();
-    const name = PHARMACY_NAMES[i - 1];
+  for (let i = 0; i < PHARMACY_NAMES.length; i++) {
+    const name = PHARMACY_NAMES[i];
+    const id = slugify(name);
+    const password = `${id}4545`;
 
-    await upsertUser(`${id}@${LOGIN_EMAIL_DOMAIN}`, password, { admin: false });
+    const result = await upsertUser(`${id}@${LOGIN_EMAIL_DOMAIN}`, password, { admin: false });
 
     await db.collection("pharmacies").doc(id).set({
       name,
-      order: i,
+      order: i + 1,
       totalCari: 0,
       paidCari: 0,
     }, { merge: true });
 
-    lines.push(`${name.padEnd(10)} | ID: ${id}  | Sifre: ${password}`);
+    lines.push(
+      result.created
+        ? `${name.padEnd(24)} | ID: ${id.padEnd(14)} | Sifre: ${password}`
+        : `${name.padEnd(24)} | ID: ${id.padEnd(14)} | Sifre: (mevcut sifre korundu, degismedi)`
+    );
   }
 
   const outPath = path.join(__dirname, "credentials.txt");
