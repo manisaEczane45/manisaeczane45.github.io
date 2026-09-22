@@ -4,73 +4,78 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manisa Eczaneleri 45 - Cari Takip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <div id="login-screen" class="screen">
   <form id="login-form" class="login-card">
+    <div class="brand-mark">M45</div>
     <h1>Manisa Eczaneleri 45</h1>
-    <p class="subtitle">Cari Takip Sistemi</p>
+    <p class="subtitle">Yemek Cari Takip Sistemi</p>
     <label for="login-id">Eczane ID</label>
     <input type="text" id="login-id" autocomplete="username" required>
     <label for="login-password">Şifre</label>
     <input type="password" id="login-password" autocomplete="current-password" required>
-    <button type="submit">Giriş Yap</button>
+    <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
     <p id="login-error" class="error-text"></p>
   </form>
 </div>
 
 <div id="app-screen" class="screen hidden">
   <header class="topbar">
-    <div>
-      <h1>Manisa Eczaneleri 45</h1>
-      <p class="subtitle">Yemek Cari Takip</p>
+    <div class="brand">
+      <div class="brand-mark">M45</div>
+      <div>
+        <h1>Manisa Eczaneleri 45</h1>
+        <p class="subtitle">Yemek Cari Takip</p>
+      </div>
     </div>
     <div class="topbar-right">
-      <span id="current-user-label"></span>
-      <button id="logout-btn" class="secondary">Çıkış</button>
+      <span id="current-user-label" class="user-chip"></span>
+      <button id="logout-btn" class="btn btn-secondary">Çıkış</button>
     </div>
   </header>
 
+  <nav class="tabs">
+    <button type="button" class="tab-btn active" data-tab="pharmacies">Eczaneler</button>
+    <button type="button" class="tab-btn hidden" data-tab="admin" id="admin-tab-btn">Admin Paneli</button>
+    <button type="button" class="tab-btn" data-tab="log">İşlem Geçmişi</button>
+  </nav>
+
   <main>
-    <section class="card">
-      <h2>Eczaneler ve Cari Bakiyeler</h2>
-      <table class="pharmacy-table">
-        <thead>
-          <tr>
-            <th>Eczane</th>
-            <th>Güncel Cari (TL)</th>
-          </tr>
-        </thead>
-        <tbody id="pharmacy-list">
-          <tr><td colspan="2" class="muted">Yükleniyor...</td></tr>
-        </tbody>
-      </table>
+    <section id="tab-panel-pharmacies" class="tab-panel">
+      <div class="section-head">
+        <h2>Eczaneler ve Cari Bakiyeler</h2>
+      </div>
+      <div id="pharmacy-cards" class="card-grid">
+        <p class="muted">Yükleniyor...</p>
+      </div>
     </section>
 
-    <section id="admin-section" class="card hidden">
-      <h2>Admin Paneli</h2>
-      <table class="pharmacy-table">
-        <thead>
-          <tr>
-            <th>Eczane</th>
-            <th>Toplam Cari (TL)</th>
-            <th>Ödenen Cari (TL)</th>
-            <th>Güncel Cari (TL)</th>
-            <th>İşlemler</th>
-          </tr>
-        </thead>
-        <tbody id="admin-pharmacy-list">
-          <tr><td colspan="5" class="muted">Yükleniyor...</td></tr>
-        </tbody>
-      </table>
+    <section id="tab-panel-admin" class="tab-panel hidden">
+      <div class="section-head">
+        <h2>Admin Paneli</h2>
+        <p class="muted small">
+          <strong>Toplam Cari</strong>: Cofaa platformundan gelecek yemek + iskonto tutarı (şu an manuel giriliyor).
+          <strong>Ödenen Cari</strong>: eczanenin yaptığı ödemelerin toplamı.
+          <strong>Güncel Cari</strong> = Toplam − Ödenen.
+        </p>
+      </div>
+      <div id="admin-cards" class="card-grid">
+        <p class="muted">Yükleniyor...</p>
+      </div>
       <p id="admin-error" class="error-text"></p>
     </section>
 
-    <section class="card">
-      <h2>İşlem Geçmişi</h2>
-      <p class="muted small">Tüm bakiye değişiklikleri şeffaflık için burada tarihiyle listelenir.</p>
+    <section id="tab-panel-log" class="tab-panel hidden">
+      <div class="section-head">
+        <h2>İşlem Geçmişi</h2>
+        <p class="muted small">Tüm bakiye değişiklikleri şeffaflık için burada tarihiyle listelenir.</p>
+      </div>
       <ul id="transaction-log" class="tx-log">
         <li class="muted">Yükleniyor...</li>
       </ul>
@@ -78,23 +83,40 @@
   </main>
 </div>
 
-<template id="admin-row-template">
-  <tr>
-    <td class="ph-name"></td>
-    <td class="ph-total"></td>
-    <td class="ph-paid"></td>
-    <td class="ph-net"></td>
-    <td class="ph-actions">
-      <div class="action-group">
-        <input type="number" class="total-input" placeholder="Yeni toplam cari" step="0.01">
-        <button class="set-total-btn secondary">Toplam Cariyi Güncelle</button>
+<template id="pharmacy-card-template">
+  <article class="ph-card">
+    <div class="ph-card-name"></div>
+    <div class="ph-card-balance"></div>
+  </article>
+</template>
+
+<template id="admin-card-template">
+  <article class="admin-card">
+    <div class="admin-card-head">
+      <span class="admin-card-name"></span>
+      <span class="balance-pill ph-net"></span>
+    </div>
+    <div class="admin-card-meta">
+      <span><span class="muted">Toplam:</span> <span class="ph-total"></span></span>
+      <span><span class="muted">Ödenen:</span> <span class="ph-paid"></span></span>
+    </div>
+    <div class="admin-card-actions">
+      <div class="field-group">
+        <label>Toplam Cari (Cofaa)</label>
+        <div class="input-row">
+          <input type="number" class="total-input" placeholder="Yeni tutar" step="0.01">
+          <button type="button" class="set-total-btn btn btn-secondary">Güncelle</button>
+        </div>
       </div>
-      <div class="action-group">
-        <input type="number" class="payment-input" placeholder="Ödeme tutarı (+kesildi / -iade)" step="0.01">
-        <button class="add-payment-btn">Kaydet</button>
+      <div class="field-group">
+        <label>Ödeme / Kesinti Gir</label>
+        <div class="input-row">
+          <input type="number" class="payment-input" placeholder="+kesildi / -iade" step="0.01">
+          <button type="button" class="add-payment-btn btn btn-primary">Kaydet</button>
+        </div>
       </div>
-    </td>
-  </tr>
+    </div>
+  </article>
 </template>
 
 <script type="module" src="js/firebase-config.js"></script>

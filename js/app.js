@@ -18,12 +18,34 @@ const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const currentUserLabel = document.getElementById("current-user-label");
 const logoutBtn = document.getElementById("logout-btn");
-const pharmacyListEl = document.getElementById("pharmacy-list");
-const adminSection = document.getElementById("admin-section");
-const adminPharmacyListEl = document.getElementById("admin-pharmacy-list");
+const pharmacyCardsEl = document.getElementById("pharmacy-cards");
+const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
-const adminRowTemplate = document.getElementById("admin-row-template");
+const pharmacyCardTemplate = document.getElementById("pharmacy-card-template");
+const adminCardTemplate = document.getElementById("admin-card-template");
+
+const tabButtons = document.querySelectorAll(".tab-btn");
+const adminTabBtn = document.getElementById("admin-tab-btn");
+const tabPanels = {
+  pharmacies: document.getElementById("tab-panel-pharmacies"),
+  admin: document.getElementById("tab-panel-admin"),
+  log: document.getElementById("tab-panel-log"),
+};
+
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (btn.classList.contains("hidden")) return;
+    activateTab(btn.dataset.tab);
+  });
+});
+
+function activateTab(tabKey) {
+  tabButtons.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabKey));
+  Object.entries(tabPanels).forEach(([key, panel]) => {
+    panel.classList.toggle("hidden", key !== tabKey);
+  });
+}
 
 const pharmaciesCache = new Map();
 let isAdmin = false;
@@ -73,7 +95,8 @@ onAuthStateChanged(auth, async (user) => {
   loginScreen.classList.add("hidden");
   appScreen.classList.remove("hidden");
   currentUserLabel.textContent = user.email.split("@")[0];
-  adminSection.classList.toggle("hidden", !isAdmin);
+  adminTabBtn.classList.toggle("hidden", !isAdmin);
+  activateTab("pharmacies");
 
   subscribePharmacies();
   subscribeTransactions();
@@ -87,9 +110,9 @@ function subscribePharmacies() {
     renderPharmacyList();
     if (isAdmin) renderAdminList();
   }, (err) => {
-    pharmacyListEl.innerHTML = `<tr><td colspan="2" class="error-text">Veriler yüklenemedi.</td></tr>`;
+    pharmacyCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     if (isAdmin) {
-      adminPharmacyListEl.innerHTML = `<tr><td colspan="5" class="error-text">Veriler yüklenemedi.</td></tr>`;
+      adminCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     }
     console.error(err);
   });
@@ -121,54 +144,56 @@ function netCariOf(data) {
 
 function renderPharmacyList() {
   if (pharmaciesCache.size === 0) {
-    pharmacyListEl.innerHTML = `<tr><td colspan="2" class="muted">Eczane bulunamadı.</td></tr>`;
+    pharmacyCardsEl.innerHTML = `<p class="muted">Eczane bulunamadı.</p>`;
     return;
   }
-  pharmacyListEl.innerHTML = "";
+  pharmacyCardsEl.innerHTML = "";
   for (const [, data] of pharmaciesCache) {
     const net = netCariOf(data);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${data.name}</td>
-      <td class="${net >= 0 ? "balance-positive" : "balance-negative"}">${currency(net)}</td>
-    `;
-    pharmacyListEl.appendChild(tr);
+    const card = pharmacyCardTemplate.content.cloneNode(true);
+    card.querySelector(".ph-card-name").textContent = data.name;
+    const balanceEl = card.querySelector(".ph-card-balance");
+    balanceEl.textContent = currency(net);
+    balanceEl.classList.add(net >= 0 ? "balance-positive" : "balance-negative");
+    pharmacyCardsEl.appendChild(card);
   }
 }
 
 function renderAdminList() {
   if (pharmaciesCache.size === 0) {
-    adminPharmacyListEl.innerHTML = `<tr><td colspan="5" class="muted">Eczane bulunamadı.</td></tr>`;
+    adminCardsEl.innerHTML = `<p class="muted">Eczane bulunamadı.</p>`;
     return;
   }
-  adminPharmacyListEl.innerHTML = "";
+  adminCardsEl.innerHTML = "";
   for (const [id, data] of pharmaciesCache) {
     const net = netCariOf(data);
-    const row = adminRowTemplate.content.cloneNode(true);
-    row.querySelector(".ph-name").textContent = data.name;
-    row.querySelector(".ph-total").textContent = currency(data.totalCari || 0);
-    row.querySelector(".ph-paid").textContent = currency(data.paidCari || 0);
-    const netCell = row.querySelector(".ph-net");
-    netCell.textContent = currency(net);
-    netCell.className = "ph-net " + (net >= 0 ? "balance-positive" : "balance-negative");
+    const card = adminCardTemplate.content.cloneNode(true);
+    card.querySelector(".admin-card-name").textContent = data.name;
 
-    const totalInput = row.querySelector(".total-input");
-    row.querySelector(".set-total-btn").addEventListener("click", async () => {
+    const netPill = card.querySelector(".ph-net");
+    netPill.textContent = currency(net);
+    netPill.classList.add(net >= 0 ? "balance-positive" : "balance-negative");
+
+    card.querySelector(".ph-total").textContent = currency(data.totalCari || 0);
+    card.querySelector(".ph-paid").textContent = currency(data.paidCari || 0);
+
+    const totalInput = card.querySelector(".total-input");
+    card.querySelector(".set-total-btn").addEventListener("click", async () => {
       const value = parseFloat(totalInput.value);
       if (Number.isNaN(value)) return;
       await updateTotalCari(id, data.name, value);
       totalInput.value = "";
     });
 
-    const paymentInput = row.querySelector(".payment-input");
-    row.querySelector(".add-payment-btn").addEventListener("click", async () => {
+    const paymentInput = card.querySelector(".payment-input");
+    card.querySelector(".add-payment-btn").addEventListener("click", async () => {
       const amount = parseFloat(paymentInput.value);
       if (Number.isNaN(amount) || amount === 0) return;
       await addPayment(id, data.name, amount);
       paymentInput.value = "";
     });
 
-    adminPharmacyListEl.appendChild(row);
+    adminCardsEl.appendChild(card);
   }
 }
 
