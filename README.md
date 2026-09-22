@@ -39,8 +39,8 @@ Firebase Console > Firestore Database > Rules kısmına [firestore.rules](firest
    npm install
    npm run seed
    ```
-3. Script 18 eczane (`ecz01`..`ecz18`, isimleri "Eczane 1".."Eczane 18" olarak placeholder) + 1 admin (`admin`) hesabı oluşturur, rastgele şifreler üretir ve `scripts/credentials.txt` dosyasına yazar (bu dosya da commit edilmez).
-4. Gerçek eczane isimlerini girmek için Firestore Console > `pharmacies` koleksiyonundan her dokümanın `name` alanını elle güncelleyin, ya da script'i tekrar çalıştırmadan önce `scripts/seed.js` içindeki isim listesini değiştirin.
+3. Script `scripts/seed.js` içindeki `PHARMACY_NAMES` listesindeki 19 eczane (`ecz01`..`ecz19`) + 1 admin (`admin`) hesabı oluşturur, rastgele şifreler üretir ve `scripts/credentials.txt` dosyasına yazar (bu dosya da commit edilmez).
+4. Eczane listesi değişirse (yeni eczane eklenir/çıkarılırsa) `scripts/seed.js` içindeki `PHARMACY_NAMES` dizisini güncelleyip script'i tekrar çalıştırmanız yeterli; script mevcut kullanıcıları günceller, yenilerini oluşturur.
 5. `scripts/credentials.txt` içindeki ID/şifreleri ilgili eczanelere güvenli bir kanaldan (elden, WhatsApp değil tercihen) iletin.
 
 ### 5. Yayınlayın

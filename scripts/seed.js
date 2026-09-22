@@ -25,7 +25,28 @@ const admin = require("firebase-admin");
 
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, "serviceAccountKey.json");
 const LOGIN_EMAIL_DOMAIN = "manisaeczane45.local"; // js/firebase-config.js ile ayni olmali
-const PHARMACY_COUNT = 18;
+
+const PHARMACY_NAMES = [
+  "Nar Eczanesi",
+  "Korkmaz Eczanesi",
+  "Kalfaoğlu Eczanesi",
+  "Sevim Eczanesi",
+  "Gürer Eczanesi",
+  "Akar Eczanesi",
+  "Yeni Eczanesi",
+  "Ayşenur Eczanesi",
+  "Buğra Eczanesi",
+  "Akdur Eczanesi",
+  "Ufuk Eczanesi",
+  "Ayşem Eczanesi",
+  "Deniz Eczanesi",
+  "Emine Betül Eczanesi",
+  "Buse Eczanesi",
+  "Çalışkan Eczanesi",
+  "Aksoy Eczanesi",
+  "Uncubozköy Eczanesi",
+  "Manisa Sağlık Eczanesi",
+];
 
 if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
   console.error(
@@ -79,10 +100,10 @@ async function main() {
   lines.push("");
 
   // Eczaneler
-  for (let i = 1; i <= PHARMACY_COUNT; i++) {
+  for (let i = 1; i <= PHARMACY_NAMES.length; i++) {
     const id = `ecz${String(i).padStart(2, "0")}`;
     const password = generatePassword();
-    const name = `Eczane ${i}`;
+    const name = PHARMACY_NAMES[i - 1];
 
     await upsertUser(`${id}@${LOGIN_EMAIL_DOMAIN}`, password, { admin: false });
 
