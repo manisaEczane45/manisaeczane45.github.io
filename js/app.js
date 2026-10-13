@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=3";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=4";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -23,6 +23,7 @@ const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
 const clearLogBtn = document.getElementById("clear-log-btn");
+const resetDataBtn = document.getElementById("reset-data-btn");
 const pharmacyCardTemplate = document.getElementById("pharmacy-card-template");
 const adminCardTemplate = document.getElementById("admin-card-template");
 
@@ -264,5 +265,36 @@ clearLogBtn.addEventListener("click", async () => {
     console.error(err);
   } finally {
     clearLogBtn.disabled = false;
+  }
+});
+
+resetDataBtn.addEventListener("click", async () => {
+  if (!isAdmin) return;
+  const confirmed = confirm(
+    "Tüm eczanelerin Toplam ve Ödenen cari bakiyeleri sıfırlanacak. Bu işlem geri alınamaz, emin misiniz?"
+  );
+  if (!confirmed) return;
+  resetDataBtn.disabled = true;
+  try {
+    const snap = await getDocs(collection(db, "pharmacies"));
+    const docs = snap.docs;
+    const CHUNK_SIZE = 400;
+    for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + CHUNK_SIZE).forEach((d) => batch.update(d.ref, { totalCari: 0, paidCari: 0 }));
+      await batch.commit();
+    }
+    await addDoc(collection(db, "transactions"), {
+      pharmacyId: null,
+      pharmacyName: null,
+      amount: 0,
+      note: "Tüm eczanelerin cari bakiyeleri sıfırlandı",
+      createdAt: serverTimestamp()
+    });
+  } catch (err) {
+    alert("Bakiyeler sıfırlanamadı.");
+    console.error(err);
+  } finally {
+    resetDataBtn.disabled = false;
   }
 });

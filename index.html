@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 
@@ -59,13 +59,16 @@
     </section>
 
     <section id="tab-panel-admin" class="tab-panel hidden">
-      <div class="section-head">
-        <h2>Admin Paneli</h2>
-        <p class="muted small">
-          <strong>Toplam Cari</strong>: Cofaa platformundan gelecek yemek + iskonto tutarı (şu an manuel giriliyor).
-          <strong>Ödenen Cari</strong>: eczanenin yaptığı ödemelerin toplamı.
-          <strong>Güncel Cari</strong> = Toplam − Ödenen.
-        </p>
+      <div class="section-head section-head-row">
+        <div>
+          <h2>Admin Paneli</h2>
+          <p class="muted small">
+            <strong>Toplam Cari</strong>: Cofaa platformundan gelecek yemek + iskonto tutarı (şu an manuel giriliyor).
+            <strong>Ödenen Cari</strong>: eczanenin yaptığı ödemelerin toplamı.
+            <strong>Güncel Cari</strong> = Toplam − Ödenen.
+          </p>
+        </div>
+        <button type="button" id="reset-data-btn" class="btn btn-danger">Tüm Bakiyeleri Sıfırla</button>
       </div>
       <div id="admin-cards" class="card-grid">
         <p class="muted">Yükleniyor...</p>
@@ -124,6 +127,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=3"></script>
+<script type="module" src="js/app.js?v=4"></script>
 </body>
 </html>
