@@ -294,6 +294,74 @@ main {
 .balance-pill.balance-positive { background: var(--positive-tint); color: var(--positive); }
 .balance-pill.balance-negative { background: var(--negative-tint); color: var(--negative); }
 
+/* Generic white panel card (forms, tools) */
+.panel-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.panel-card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dist-form-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.dist-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dist-row select,
+.dist-row input {
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.dist-row select { flex: 2; min-width: 160px; }
+.dist-row input { flex: 1; min-width: 90px; }
+
+.dist-preview {
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-width: 110px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dist-row .dist-remove-btn {
+  padding: 6px 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dist-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* Admin cards */
 .admin-card {
   background: var(--card-bg);

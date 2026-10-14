@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 
@@ -70,6 +70,36 @@
         </div>
         <button type="button" id="reset-data-btn" class="btn btn-danger">Tüm Bakiyeleri Sıfırla</button>
       </div>
+
+      <div class="panel-card">
+        <h3>İlaç ile Yemek Dağıtımı</h3>
+        <p class="muted small">
+          Cofaa entegrasyonu hazır olana kadar: bir ilacın toplam adedini ve bu ilaç için
+          dağıtılacak toplam yemek tutarını girin, hangi eczane kaç adet aldıysa ekleyin;
+          "Yemek Bölüştür" o oranda her eczanenin Toplam Cari'sine otomatik ekler.
+        </p>
+        <div class="dist-form-top">
+          <div class="field-group">
+            <label>İlaç Adı</label>
+            <input type="text" id="dist-drug-name" placeholder="Örn. Arveles">
+          </div>
+          <div class="field-group">
+            <label>Toplam İlaç Adedi</label>
+            <input type="number" id="dist-total-units" placeholder="500" step="1" min="0">
+          </div>
+          <div class="field-group">
+            <label>Toplam Yemek Tutarı (TL)</label>
+            <input type="number" id="dist-total-amount" placeholder="1000" step="0.01" min="0">
+          </div>
+        </div>
+        <div id="dist-rows" class="dist-rows"></div>
+        <div class="dist-actions">
+          <button type="button" id="dist-add-row-btn" class="btn btn-secondary">+ Eczane Ekle</button>
+          <button type="button" id="dist-submit-btn" class="btn btn-primary">Yemek Bölüştür</button>
+        </div>
+        <p id="dist-error" class="error-text"></p>
+      </div>
+
       <div id="admin-cards" class="card-grid">
         <p class="muted">Yükleniyor...</p>
       </div>
@@ -90,6 +120,15 @@
     </section>
   </main>
 </div>
+
+<template id="dist-row-template">
+  <div class="dist-row">
+    <select class="dist-pharmacy-select"></select>
+    <input type="number" class="dist-adet-input" placeholder="Adet" step="1" min="0">
+    <span class="dist-preview muted"></span>
+    <button type="button" class="btn btn-secondary dist-remove-btn">×</button>
+  </div>
+</template>
 
 <template id="pharmacy-card-template">
   <article class="ph-card">
@@ -127,6 +166,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=4"></script>
+<script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>

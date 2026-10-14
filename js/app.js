@@ -1,11 +1,11 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=4";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=5";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, onSnapshot, query, orderBy, limit,
-  runTransaction, addDoc, serverTimestamp, getDocs, writeBatch
+  runTransaction, addDoc, serverTimestamp, getDocs, writeBatch, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
@@ -26,6 +26,15 @@ const clearLogBtn = document.getElementById("clear-log-btn");
 const resetDataBtn = document.getElementById("reset-data-btn");
 const pharmacyCardTemplate = document.getElementById("pharmacy-card-template");
 const adminCardTemplate = document.getElementById("admin-card-template");
+
+const distDrugNameInput = document.getElementById("dist-drug-name");
+const distTotalUnitsInput = document.getElementById("dist-total-units");
+const distTotalAmountInput = document.getElementById("dist-total-amount");
+const distRowsEl = document.getElementById("dist-rows");
+const distAddRowBtn = document.getElementById("dist-add-row-btn");
+const distSubmitBtn = document.getElementById("dist-submit-btn");
+const distError = document.getElementById("dist-error");
+const distRowTemplate = document.getElementById("dist-row-template");
 
 const tabButtons = document.querySelectorAll(".tab-btn");
 const adminTabBtn = document.getElementById("admin-tab-btn");
@@ -53,6 +62,9 @@ const pharmaciesCache = new Map();
 let isAdmin = false;
 let unsubPharmacies = null;
 let unsubTransactions = null;
+
+let distRows = [];
+let distRowRefs = [];
 
 const currency = (n) =>
   (n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
@@ -111,7 +123,10 @@ function subscribePharmacies() {
     pharmaciesCache.clear();
     snapshot.forEach((docSnap) => pharmaciesCache.set(docSnap.id, docSnap.data()));
     renderPharmacyList();
-    if (isAdmin) renderAdminList();
+    if (isAdmin) {
+      renderAdminList();
+      renderDistRows();
+    }
   }, (err) => {
     pharmacyCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     if (isAdmin) {
@@ -296,5 +311,128 @@ resetDataBtn.addEventListener("click", async () => {
     console.error(err);
   } finally {
     resetDataBtn.disabled = false;
+  }
+});
+
+function computeDistPreview(adet) {
+  const totalUnits = parseFloat(distTotalUnitsInput.value);
+  const totalAmount = parseFloat(distTotalAmountInput.value);
+  if (!adet || !Number.isFinite(totalUnits) || totalUnits <= 0 || !Number.isFinite(totalAmount) || totalAmount <= 0) {
+    return "";
+  }
+  return "≈ " + currency((adet / totalUnits) * totalAmount);
+}
+
+function updateAllDistPreviews() {
+  distRowRefs.forEach((ref, idx) => {
+    ref.previewSpan.textContent = computeDistPreview(distRows[idx].adet);
+  });
+}
+
+distTotalUnitsInput.addEventListener("input", updateAllDistPreviews);
+distTotalAmountInput.addEventListener("input", updateAllDistPreviews);
+
+function renderDistRows() {
+  distRowsEl.innerHTML = "";
+  distRowRefs = [];
+
+  distRows.forEach((row, idx) => {
+    const frag = distRowTemplate.content.cloneNode(true);
+    const select = frag.querySelector(".dist-pharmacy-select");
+    const adetInput = frag.querySelector(".dist-adet-input");
+    const previewSpan = frag.querySelector(".dist-preview");
+    const removeBtn = frag.querySelector(".dist-remove-btn");
+
+    for (const [id, data] of pharmaciesCache) {
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = data.name;
+      select.appendChild(opt);
+    }
+    if (!row.pharmacyId && select.options.length > 0) {
+      row.pharmacyId = select.options[0].value;
+    }
+    select.value = row.pharmacyId || "";
+    select.addEventListener("change", () => {
+      row.pharmacyId = select.value;
+    });
+
+    adetInput.value = row.adet || "";
+    adetInput.addEventListener("input", () => {
+      row.adet = parseFloat(adetInput.value) || 0;
+      previewSpan.textContent = computeDistPreview(row.adet);
+    });
+
+    removeBtn.addEventListener("click", () => {
+      distRows.splice(idx, 1);
+      renderDistRows();
+    });
+
+    distRowsEl.appendChild(frag);
+    distRowRefs.push({ adetInput, previewSpan, select });
+  });
+
+  updateAllDistPreviews();
+}
+
+distAddRowBtn.addEventListener("click", () => {
+  distRows.push({ pharmacyId: null, adet: 0 });
+  renderDistRows();
+});
+
+distSubmitBtn.addEventListener("click", async () => {
+  distError.textContent = "";
+
+  const drugName = distDrugNameInput.value.trim();
+  const totalUnits = parseFloat(distTotalUnitsInput.value);
+  const totalAmount = parseFloat(distTotalAmountInput.value);
+
+  if (!drugName) { distError.textContent = "İlaç adı girin."; return; }
+  if (!Number.isFinite(totalUnits) || totalUnits <= 0) { distError.textContent = "Toplam ilaç adedi geçerli olmalı."; return; }
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) { distError.textContent = "Toplam yemek tutarı geçerli olmalı."; return; }
+  if (distRows.length === 0) { distError.textContent = "En az bir eczane ekleyin."; return; }
+
+  const seen = new Set();
+  let sumAdet = 0;
+  for (const row of distRows) {
+    if (!row.pharmacyId) { distError.textContent = "Her satırda bir eczane seçili olmalı."; return; }
+    if (seen.has(row.pharmacyId)) { distError.textContent = "Aynı eczane birden fazla kez eklenemez."; return; }
+    seen.add(row.pharmacyId);
+    if (!row.adet || row.adet <= 0) { distError.textContent = "Her satırda geçerli bir adet girin."; return; }
+    sumAdet += row.adet;
+  }
+  if (sumAdet > totalUnits + 0.0001) {
+    distError.textContent = `Girilen adetler toplamı (${sumAdet}) toplam ilaç adedini (${totalUnits}) aşamaz.`;
+    return;
+  }
+
+  distSubmitBtn.disabled = true;
+  try {
+    const batch = writeBatch(db);
+    for (const row of distRows) {
+      const amount = (row.adet / totalUnits) * totalAmount;
+      const pharmacyName = pharmaciesCache.get(row.pharmacyId)?.name || row.pharmacyId;
+
+      batch.update(doc(db, "pharmacies", row.pharmacyId), { totalCari: increment(amount) });
+      batch.set(doc(collection(db, "transactions")), {
+        pharmacyId: row.pharmacyId,
+        pharmacyName,
+        amount,
+        note: `${pharmacyName}: ${drugName} (${row.adet}/${totalUnits} adet) karşılığı ${currency(amount)} yemek cari eklendi`,
+        createdAt: serverTimestamp()
+      });
+    }
+    await batch.commit();
+
+    distDrugNameInput.value = "";
+    distTotalUnitsInput.value = "";
+    distTotalAmountInput.value = "";
+    distRows = [];
+    renderDistRows();
+  } catch (err) {
+    distError.textContent = "Dağıtım başarısız oldu.";
+    console.error(err);
+  } finally {
+    distSubmitBtn.disabled = false;
   }
 });
