@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=7";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=8";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -166,7 +166,8 @@ function renderPharmacyList() {
     return;
   }
   pharmacyCardsEl.innerHTML = "";
-  for (const [, data] of pharmaciesCache) {
+  const sorted = [...pharmaciesCache.entries()].sort((a, b) => netCariOf(b[1]) - netCariOf(a[1]));
+  for (const [, data] of sorted) {
     const net = netCariOf(data);
     const card = pharmacyCardTemplate.content.cloneNode(true);
     card.querySelector(".ph-card-name").textContent = data.name;
@@ -183,7 +184,8 @@ function renderAdminList() {
     return;
   }
   adminCardsEl.innerHTML = "";
-  for (const [id, data] of pharmaciesCache) {
+  const sorted = [...pharmaciesCache.entries()].sort((a, b) => netCariOf(b[1]) - netCariOf(a[1]));
+  for (const [id, data] of sorted) {
     const net = netCariOf(data);
     const card = adminCardTemplate.content.cloneNode(true);
     card.querySelector(".admin-card-name").textContent = data.name;
