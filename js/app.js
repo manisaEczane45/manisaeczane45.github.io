@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=5";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=6";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -203,12 +203,15 @@ function renderAdminList() {
       totalInput.value = "";
     });
 
+    const paymentInfoInput = card.querySelector(".payment-info-input");
     const paymentInput = card.querySelector(".payment-input");
     card.querySelector(".add-payment-btn").addEventListener("click", async () => {
       const amount = parseFloat(paymentInput.value);
       if (Number.isNaN(amount) || amount === 0) return;
-      await addPayment(id, data.name, amount);
+      const info = paymentInfoInput.value.trim();
+      await addPayment(id, data.name, amount, info);
       paymentInput.value = "";
+      paymentInfoInput.value = "";
     });
 
     adminCardsEl.appendChild(card);
@@ -235,7 +238,7 @@ async function updateTotalCari(pharmacyId, pharmacyName, newTotal) {
   }
 }
 
-async function addPayment(pharmacyId, pharmacyName, amount) {
+async function addPayment(pharmacyId, pharmacyName, amount, info) {
   adminError.textContent = "";
   try {
     const ref = doc(db, "pharmacies", pharmacyId);
@@ -245,13 +248,18 @@ async function addPayment(pharmacyId, pharmacyName, amount) {
       const newPaid = (current.paidCari || 0) + amount;
       tx.update(ref, { paidCari: newPaid });
     });
-    const note = amount > 0
-      ? `${pharmacyName}: ${currency(amount)} yemek kesildi`
-      : `${pharmacyName}: ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`;
+    const note = info
+      ? (amount > 0
+        ? `${pharmacyName} için ${info} ${currency(amount)} yemek kesildi`
+        : `${pharmacyName} için ${info} ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`)
+      : (amount > 0
+        ? `${pharmacyName}: ${currency(amount)} yemek kesildi`
+        : `${pharmacyName}: ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`);
     await addDoc(collection(db, "transactions"), {
       pharmacyId,
       pharmacyName,
       amount,
+      info: info || null,
       note,
       createdAt: serverTimestamp()
     });

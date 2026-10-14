@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -156,7 +156,10 @@
         </div>
       </div>
       <div class="field-group">
-        <label>Ödeme / Kesinti Gir</label>
+        <label>Yemek Kes</label>
+        <div class="input-row">
+          <input type="text" class="payment-info-input" placeholder="Bilgi (opsiyonel, örn. Bilim İlaç'tan)">
+        </div>
         <div class="input-row">
           <input type="number" class="payment-input" placeholder="+kesildi / -iade" step="0.01">
           <button type="button" class="add-payment-btn btn btn-primary">Kaydet</button>
@@ -166,6 +169,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=5"></script>
+<script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>
