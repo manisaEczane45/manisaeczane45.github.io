@@ -456,19 +456,55 @@ main {
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
+}
+
+.tx-log li:last-child { border-bottom: none; }
+
+.tx-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
 }
 
-.tx-log li:last-child { border-bottom: none; }
-
 .tx-log .tx-date {
   color: var(--muted);
   font-size: 0.78rem;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.tx-edited-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tx-edit-btn {
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  flex-shrink: 0;
+}
+
+.tx-edit-form {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.tx-edit-form .field-group { min-width: 160px; }
+
+.tx-edit-form input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
 }
 
 @media (max-width: 640px) {
@@ -478,5 +514,5 @@ main {
   main { padding: 16px 14px 40px; }
   .card-grid { grid-template-columns: 1fr; }
   .admin-card-meta { flex-direction: column; gap: 4px; }
-  .tx-log li { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tx-row { flex-direction: column; align-items: flex-start; gap: 4px; }
 }

@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=8";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=9";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -74,6 +74,25 @@ const dateFmt = (ts) => {
   return ts.toDate().toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" });
 };
 
+function buildPaymentNote(pharmacyName, amount, info) {
+  if (info) {
+    return amount > 0
+      ? `${pharmacyName} için ${info} ${currency(amount)} yemek kesildi`
+      : `${pharmacyName} için ${info} ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`;
+  }
+  return amount > 0
+    ? `${pharmacyName}: ${currency(amount)} yemek kesildi`
+    : `${pharmacyName}: ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`;
+}
+
+function buildTotalUpdateNote(pharmacyName, newTotal) {
+  return `${pharmacyName}: Toplam cari ${currency(newTotal)} olarak güncellendi`;
+}
+
+function buildDistributionNote(pharmacyName, drugName, unitsTaken, totalUnits, amount) {
+  return `${pharmacyName}: ${drugName} (${unitsTaken}/${totalUnits} adet) karşılığı ${currency(amount)} yemek cari eklendi`;
+}
+
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.textContent = "";
@@ -136,6 +155,8 @@ function subscribePharmacies() {
   });
 }
 
+const EDITABLE_KINDS = ["payment", "distribution", "total_update"];
+
 function subscribeTransactions() {
   const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100));
   unsubTransactions = onSnapshot(q, (snapshot) => {
@@ -145,15 +166,167 @@ function subscribeTransactions() {
     }
     txLogEl.innerHTML = "";
     snapshot.forEach((docSnap) => {
-      const tx = docSnap.data();
-      const li = document.createElement("li");
-      li.innerHTML = `<span>${tx.note || ""}</span><span class="tx-date">${dateFmt(tx.createdAt)}</span>`;
-      txLogEl.appendChild(li);
+      txLogEl.appendChild(buildTxListItem(docSnap.id, docSnap.data()));
     });
   }, (err) => {
     txLogEl.innerHTML = `<li class="error-text">İşlem geçmişi yüklenemedi.</li>`;
     console.error(err);
   });
+}
+
+function buildTxListItem(txId, tx) {
+  const li = document.createElement("li");
+  li.className = "tx-item";
+
+  const row = document.createElement("div");
+  row.className = "tx-row";
+
+  const noteSpan = document.createElement("span");
+  noteSpan.className = "tx-note";
+  noteSpan.textContent = tx.note || "";
+  if (tx.edited) {
+    const badge = document.createElement("span");
+    badge.className = "tx-edited-badge muted";
+    badge.textContent = " (düzenlendi)";
+    noteSpan.appendChild(badge);
+  }
+  row.appendChild(noteSpan);
+
+  const dateSpan = document.createElement("span");
+  dateSpan.className = "tx-date";
+  dateSpan.textContent = dateFmt(tx.createdAt);
+  row.appendChild(dateSpan);
+
+  const canEdit = isAdmin && tx.pharmacyId && EDITABLE_KINDS.includes(tx.kind);
+  if (canEdit) {
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "btn btn-secondary tx-edit-btn";
+    editBtn.textContent = "Düzenle";
+    row.appendChild(editBtn);
+
+    const editForm = buildTxEditForm(txId, tx, () => editForm.classList.add("hidden"));
+    editForm.classList.add("hidden");
+
+    editBtn.addEventListener("click", () => {
+      editForm.classList.toggle("hidden");
+    });
+
+    li.appendChild(row);
+    li.appendChild(editForm);
+  } else {
+    li.appendChild(row);
+  }
+
+  return li;
+}
+
+function buildTxEditForm(txId, tx, closeForm) {
+  const form = document.createElement("div");
+  form.className = "tx-edit-form";
+
+  const amountLabel = tx.kind === "total_update" ? "Yeni Toplam Cari (TL)" : "Tutar (TL)";
+  const amountInput = document.createElement("input");
+  amountInput.type = "number";
+  amountInput.step = "0.01";
+  amountInput.value = tx.amount ?? 0;
+  amountInput.placeholder = amountLabel;
+
+  const amountGroup = document.createElement("div");
+  amountGroup.className = "field-group";
+  const amountLbl = document.createElement("label");
+  amountLbl.textContent = amountLabel;
+  amountGroup.appendChild(amountLbl);
+  amountGroup.appendChild(amountInput);
+  form.appendChild(amountGroup);
+
+  let infoInput = null;
+  if (tx.kind === "payment") {
+    const infoGroup = document.createElement("div");
+    infoGroup.className = "field-group";
+    const infoLbl = document.createElement("label");
+    infoLbl.textContent = "Bilgi";
+    infoInput = document.createElement("input");
+    infoInput.type = "text";
+    infoInput.value = tx.info || "";
+    infoGroup.appendChild(infoLbl);
+    infoGroup.appendChild(infoInput);
+    form.appendChild(infoGroup);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "dist-actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "btn btn-primary";
+  saveBtn.textContent = "Kaydet";
+  saveBtn.addEventListener("click", async () => {
+    const newAmount = parseFloat(amountInput.value);
+    if (!Number.isFinite(newAmount)) return;
+    saveBtn.disabled = true;
+    try {
+      await editTransaction(txId, tx, newAmount, infoInput ? infoInput.value.trim() : undefined);
+      closeForm();
+    } catch (err) {
+      adminError.textContent = "İşlem düzenlenemedi.";
+      console.error(err);
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "btn btn-secondary";
+  cancelBtn.textContent = "İptal";
+  cancelBtn.addEventListener("click", closeForm);
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+  form.appendChild(actions);
+
+  return form;
+}
+
+async function editTransaction(txId, tx, newAmount, newInfo) {
+  const pharmacyRef = doc(db, "pharmacies", tx.pharmacyId);
+  const txRef = doc(db, "transactions", txId);
+  const oldAmount = tx.amount || 0;
+  const batch = writeBatch(db);
+
+  if (tx.kind === "total_update") {
+    batch.update(pharmacyRef, { totalCari: newAmount });
+    batch.update(txRef, {
+      amount: newAmount,
+      note: buildTotalUpdateNote(tx.pharmacyName, newAmount),
+      edited: true,
+      editedAt: serverTimestamp()
+    });
+  } else if (tx.kind === "payment") {
+    const diff = newAmount - oldAmount;
+    batch.update(pharmacyRef, { paidCari: increment(diff) });
+    batch.update(txRef, {
+      amount: newAmount,
+      info: newInfo || null,
+      note: buildPaymentNote(tx.pharmacyName, newAmount, newInfo),
+      edited: true,
+      editedAt: serverTimestamp()
+    });
+  } else if (tx.kind === "distribution") {
+    const diff = newAmount - oldAmount;
+    batch.update(pharmacyRef, { totalCari: increment(diff) });
+    batch.update(txRef, {
+      amount: newAmount,
+      note: buildDistributionNote(tx.pharmacyName, tx.drugName, tx.unitsTaken, tx.totalUnits, newAmount),
+      edited: true,
+      editedAt: serverTimestamp()
+    });
+  } else {
+    return;
+  }
+
+  await batch.commit();
 }
 
 function netCariOf(data) {
@@ -230,8 +403,9 @@ async function updateTotalCari(pharmacyId, pharmacyName, newTotal) {
     await addDoc(collection(db, "transactions"), {
       pharmacyId,
       pharmacyName,
+      kind: "total_update",
       amount: newTotal,
-      note: `${pharmacyName}: Toplam cari ${currency(newTotal)} olarak güncellendi`,
+      note: buildTotalUpdateNote(pharmacyName, newTotal),
       createdAt: serverTimestamp()
     });
   } catch (err) {
@@ -250,19 +424,13 @@ async function addPayment(pharmacyId, pharmacyName, amount, info) {
       const newPaid = (current.paidCari || 0) + amount;
       tx.update(ref, { paidCari: newPaid });
     });
-    const note = info
-      ? (amount > 0
-        ? `${pharmacyName} için ${info} ${currency(amount)} yemek kesildi`
-        : `${pharmacyName} için ${info} ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`)
-      : (amount > 0
-        ? `${pharmacyName}: ${currency(amount)} yemek kesildi`
-        : `${pharmacyName}: ${currency(Math.abs(amount))} yemek eklendi (düzeltme)`);
     await addDoc(collection(db, "transactions"), {
       pharmacyId,
       pharmacyName,
+      kind: "payment",
       amount,
       info: info || null,
-      note,
+      note: buildPaymentNote(pharmacyName, amount, info),
       createdAt: serverTimestamp()
     });
   } catch (err) {
@@ -312,6 +480,7 @@ resetDataBtn.addEventListener("click", async () => {
     await addDoc(collection(db, "transactions"), {
       pharmacyId: null,
       pharmacyName: null,
+      kind: "reset",
       amount: 0,
       note: "Tüm eczanelerin cari bakiyeleri sıfırlandı",
       createdAt: serverTimestamp()
@@ -427,8 +596,12 @@ distSubmitBtn.addEventListener("click", async () => {
       batch.set(doc(collection(db, "transactions")), {
         pharmacyId: row.pharmacyId,
         pharmacyName,
+        kind: "distribution",
         amount,
-        note: `${pharmacyName}: ${drugName} (${row.adet}/${totalUnits} adet) karşılığı ${currency(amount)} yemek cari eklendi`,
+        drugName,
+        unitsTaken: row.adet,
+        totalUnits,
+        note: buildDistributionNote(pharmacyName, drugName, row.adet, totalUnits, amount),
         createdAt: serverTimestamp()
       });
     }
