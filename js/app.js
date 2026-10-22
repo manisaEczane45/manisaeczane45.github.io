@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=9";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=10";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -370,14 +370,6 @@ function renderAdminList() {
     card.querySelector(".ph-total").textContent = currency(data.totalCari || 0);
     card.querySelector(".ph-paid").textContent = currency(data.paidCari || 0);
 
-    const totalInput = card.querySelector(".total-input");
-    card.querySelector(".set-total-btn").addEventListener("click", async () => {
-      const value = parseFloat(totalInput.value);
-      if (Number.isNaN(value)) return;
-      await updateTotalCari(id, data.name, value);
-      totalInput.value = "";
-    });
-
     const paymentInfoInput = card.querySelector(".payment-info-input");
     const paymentInput = card.querySelector(".payment-input");
     card.querySelector(".add-payment-btn").addEventListener("click", async () => {
@@ -390,27 +382,6 @@ function renderAdminList() {
     });
 
     adminCardsEl.appendChild(card);
-  }
-}
-
-async function updateTotalCari(pharmacyId, pharmacyName, newTotal) {
-  adminError.textContent = "";
-  try {
-    const ref = doc(db, "pharmacies", pharmacyId);
-    await runTransaction(db, async (tx) => {
-      tx.update(ref, { totalCari: newTotal });
-    });
-    await addDoc(collection(db, "transactions"), {
-      pharmacyId,
-      pharmacyName,
-      kind: "total_update",
-      amount: newTotal,
-      note: buildTotalUpdateNote(pharmacyName, newTotal),
-      createdAt: serverTimestamp()
-    });
-  } catch (err) {
-    adminError.textContent = "Güncelleme başarısız oldu.";
-    console.error(err);
   }
 }
 
@@ -522,7 +493,8 @@ function renderDistRows() {
     const previewSpan = frag.querySelector(".dist-preview");
     const removeBtn = frag.querySelector(".dist-remove-btn");
 
-    for (const [id, data] of pharmaciesCache) {
+    const alphabetical = [...pharmaciesCache.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, "tr"));
+    for (const [id, data] of alphabetical) {
       const opt = document.createElement("option");
       opt.value = id;
       opt.textContent = data.name;

@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
 
@@ -63,7 +63,7 @@
         <div>
           <h2>Admin Paneli</h2>
           <p class="muted small">
-            <strong>Toplam Cari</strong>: Cofaa platformundan gelecek yemek + iskonto tutarı (şu an manuel giriliyor).
+            <strong>Toplam Cari</strong>: Cofaa platformundan gelecek yemek + iskonto tutarı (şu an "İlaç ile Yemek Dağıtımı" aracıyla giriliyor).
             <strong>Ödenen Cari</strong>: eczanenin yaptığı ödemelerin toplamı.
             <strong>Güncel Cari</strong> = Toplam − Ödenen.
           </p>
@@ -149,13 +149,6 @@
     </div>
     <div class="admin-card-actions">
       <div class="field-group">
-        <label>Geçmiş Borç</label>
-        <div class="input-row">
-          <input type="number" class="total-input" placeholder="Yeni tutar" step="0.01">
-          <button type="button" class="set-total-btn btn btn-secondary">Güncelle</button>
-        </div>
-      </div>
-      <div class="field-group">
         <label>Yemek Kes</label>
         <div class="input-row">
           <input type="text" class="payment-info-input" placeholder="Bilgi (opsiyonel, örn. Bilim İlaç'tan)">
@@ -169,6 +162,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=9"></script>
+<script type="module" src="js/app.js?v=10"></script>
 </body>
 </html>
