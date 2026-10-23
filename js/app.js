@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=10";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=11";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -36,6 +36,11 @@ const distSubmitBtn = document.getElementById("dist-submit-btn");
 const distError = document.getElementById("dist-error");
 const distRowTemplate = document.getElementById("dist-row-template");
 
+const budgetTotalAmountInput = document.getElementById("budget-total-amount");
+const budgetRowsEl = document.getElementById("budget-rows");
+const budgetAddRowBtn = document.getElementById("budget-add-row-btn");
+const budgetRowTemplate = document.getElementById("budget-row-template");
+
 const tabButtons = document.querySelectorAll(".tab-btn");
 const adminTabBtn = document.getElementById("admin-tab-btn");
 const tabPanels = {
@@ -65,6 +70,9 @@ let unsubTransactions = null;
 
 let distRows = [];
 let distRowRefs = [];
+
+let budgetRows = [];
+let budgetRowRefs = [];
 
 const currency = (n) =>
   (n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
@@ -590,4 +598,68 @@ distSubmitBtn.addEventListener("click", async () => {
   } finally {
     distSubmitBtn.disabled = false;
   }
+});
+
+function updateAllBudgetPreviews() {
+  const totalAmount = parseFloat(budgetTotalAmountInput.value);
+  const lineValues = budgetRows.map((row) => (row.qty || 0) * (row.price || 0));
+  const sumLineValues = lineValues.reduce((a, b) => a + b, 0);
+
+  budgetRowRefs.forEach((ref, idx) => {
+    const lineValue = lineValues[idx];
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0 || sumLineValues <= 0 || !lineValue) {
+      ref.previewSpan.textContent = "";
+      return;
+    }
+    const share = (lineValue / sumLineValues) * totalAmount;
+    ref.previewSpan.textContent = "≈ " + currency(share);
+  });
+}
+
+budgetTotalAmountInput.addEventListener("input", updateAllBudgetPreviews);
+
+function renderBudgetRows() {
+  budgetRowsEl.innerHTML = "";
+  budgetRowRefs = [];
+
+  budgetRows.forEach((row, idx) => {
+    const frag = budgetRowTemplate.content.cloneNode(true);
+    const nameInput = frag.querySelector(".budget-drug-name");
+    const qtyInput = frag.querySelector(".budget-qty-input");
+    const priceInput = frag.querySelector(".budget-price-input");
+    const previewSpan = frag.querySelector(".dist-preview");
+    const removeBtn = frag.querySelector(".dist-remove-btn");
+
+    nameInput.value = row.drugName || "";
+    nameInput.addEventListener("input", () => {
+      row.drugName = nameInput.value;
+    });
+
+    qtyInput.value = row.qty || "";
+    qtyInput.addEventListener("input", () => {
+      row.qty = parseFloat(qtyInput.value) || 0;
+      updateAllBudgetPreviews();
+    });
+
+    priceInput.value = row.price || "";
+    priceInput.addEventListener("input", () => {
+      row.price = parseFloat(priceInput.value) || 0;
+      updateAllBudgetPreviews();
+    });
+
+    removeBtn.addEventListener("click", () => {
+      budgetRows.splice(idx, 1);
+      renderBudgetRows();
+    });
+
+    budgetRowsEl.appendChild(frag);
+    budgetRowRefs.push({ nameInput, qtyInput, priceInput, previewSpan });
+  });
+
+  updateAllBudgetPreviews();
+}
+
+budgetAddRowBtn.addEventListener("click", () => {
+  budgetRows.push({ drugName: "", qty: 0, price: 0 });
+  renderBudgetRows();
 });

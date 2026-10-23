@@ -342,6 +342,7 @@ main {
 
 .dist-row select { flex: 2; min-width: 160px; }
 .dist-row input { flex: 1; min-width: 90px; }
+.dist-row .budget-drug-name { flex: 2; min-width: 140px; }
 
 .dist-preview {
   font-size: 0.82rem;
