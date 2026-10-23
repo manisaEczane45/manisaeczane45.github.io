@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=11";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=12";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -39,6 +39,7 @@ const distRowTemplate = document.getElementById("dist-row-template");
 const budgetTotalAmountInput = document.getElementById("budget-total-amount");
 const budgetRowsEl = document.getElementById("budget-rows");
 const budgetAddRowBtn = document.getElementById("budget-add-row-btn");
+const budgetResetBtn = document.getElementById("budget-reset-btn");
 const budgetRowTemplate = document.getElementById("budget-row-template");
 
 const tabButtons = document.querySelectorAll(".tab-btn");
@@ -637,7 +638,10 @@ function renderBudgetRows() {
 
     qtyInput.value = row.qty || "";
     qtyInput.addEventListener("input", () => {
-      row.qty = parseFloat(qtyInput.value) || 0;
+      if (qtyInput.value.includes(".") || qtyInput.value.includes(",")) {
+        qtyInput.value = qtyInput.value.split(/[.,]/)[0];
+      }
+      row.qty = parseInt(qtyInput.value, 10) || 0;
       updateAllBudgetPreviews();
     });
 
@@ -661,5 +665,11 @@ function renderBudgetRows() {
 
 budgetAddRowBtn.addEventListener("click", () => {
   budgetRows.push({ drugName: "", qty: 0, price: 0 });
+  renderBudgetRows();
+});
+
+budgetResetBtn.addEventListener("click", () => {
+  budgetTotalAmountInput.value = "";
+  budgetRows = [];
   renderBudgetRows();
 });
