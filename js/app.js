@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=12";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=13";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -42,10 +42,21 @@ const budgetAddRowBtn = document.getElementById("budget-add-row-btn");
 const budgetResetBtn = document.getElementById("budget-reset-btn");
 const budgetRowTemplate = document.getElementById("budget-row-template");
 
+const receivableCardsEl = document.getElementById("receivable-cards");
+const receivableAdminCardsEl = document.getElementById("receivable-admin-cards");
+const receivableCardTemplate = document.getElementById("receivable-card-template");
+const receivableAdminCardTemplate = document.getElementById("receivable-admin-card-template");
+const receivableCompanyNameInput = document.getElementById("receivable-company-name");
+const receivableContactNameInput = document.getElementById("receivable-contact-name");
+const receivableInitialAmountInput = document.getElementById("receivable-initial-amount");
+const receivableAddBtn = document.getElementById("receivable-add-btn");
+const receivableFormError = document.getElementById("receivable-form-error");
+
 const tabButtons = document.querySelectorAll(".tab-btn");
 const adminTabBtn = document.getElementById("admin-tab-btn");
 const tabPanels = {
   pharmacies: document.getElementById("tab-panel-pharmacies"),
+  receivables: document.getElementById("tab-panel-receivables"),
   admin: document.getElementById("tab-panel-admin"),
   log: document.getElementById("tab-panel-log"),
 };
@@ -65,9 +76,11 @@ function activateTab(tabKey) {
 }
 
 const pharmaciesCache = new Map();
+const receivablesCache = new Map();
 let isAdmin = false;
 let unsubPharmacies = null;
 let unsubTransactions = null;
+let unsubReceivables = null;
 
 let distRows = [];
 let distRowRefs = [];
@@ -102,6 +115,22 @@ function buildDistributionNote(pharmacyName, drugName, unitsTaken, totalUnits, a
   return `${pharmacyName}: ${drugName} (${unitsTaken}/${totalUnits} adet) karşılığı ${currency(amount)} yemek cari eklendi`;
 }
 
+function receivableLabel(companyName, contactName) {
+  return contactName ? `${companyName} (${contactName})` : companyName;
+}
+
+function buildReceivableCreateNote(label, amount) {
+  return `${label}: ${currency(amount)} borç ile yeni alacaklı olarak eklendi`;
+}
+
+function buildReceivableAddNote(label, amount, newBalance) {
+  return `${label}: ${currency(amount)} borç eklendi (kalan borç: ${currency(newBalance)})`;
+}
+
+function buildReceivableCollectNote(label, amount, newBalance) {
+  return `${label}: ${currency(amount)} tahsil edildi (kalan borç: ${currency(newBalance)})`;
+}
+
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.textContent = "";
@@ -121,7 +150,9 @@ logoutBtn.addEventListener("click", () => signOut(auth));
 onAuthStateChanged(auth, async (user) => {
   if (unsubPharmacies) { unsubPharmacies(); unsubPharmacies = null; }
   if (unsubTransactions) { unsubTransactions(); unsubTransactions = null; }
+  if (unsubReceivables) { unsubReceivables(); unsubReceivables = null; }
   pharmaciesCache.clear();
+  receivablesCache.clear();
 
   if (!user) {
     isAdmin = false;
@@ -143,6 +174,7 @@ onAuthStateChanged(auth, async (user) => {
 
   subscribePharmacies();
   subscribeTransactions();
+  subscribeReceivables();
 });
 
 function subscribePharmacies() {
@@ -159,6 +191,22 @@ function subscribePharmacies() {
     pharmacyCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     if (isAdmin) {
       adminCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
+    }
+    console.error(err);
+  });
+}
+
+function subscribeReceivables() {
+  const q = collection(db, "receivables");
+  unsubReceivables = onSnapshot(q, (snapshot) => {
+    receivablesCache.clear();
+    snapshot.forEach((docSnap) => receivablesCache.set(docSnap.id, docSnap.data()));
+    renderReceivableList();
+    if (isAdmin) renderReceivableAdminList();
+  }, (err) => {
+    receivableCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
+    if (isAdmin) {
+      receivableAdminCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     }
     console.error(err);
   });
@@ -673,3 +721,123 @@ budgetResetBtn.addEventListener("click", () => {
   budgetRows = [];
   renderBudgetRows();
 });
+
+function renderReceivableList() {
+  if (receivablesCache.size === 0) {
+    receivableCardsEl.innerHTML = `<p class="muted">Henüz alacaklı eklenmedi.</p>`;
+    return;
+  }
+  receivableCardsEl.innerHTML = "";
+  const sorted = [...receivablesCache.entries()].sort((a, b) => (b[1].amount || 0) - (a[1].amount || 0));
+  for (const [, data] of sorted) {
+    const amount = data.amount || 0;
+    const card = receivableCardTemplate.content.cloneNode(true);
+    card.querySelector(".ph-card-name").textContent = receivableLabel(data.companyName, data.contactName);
+    const balanceEl = card.querySelector(".ph-card-balance");
+    balanceEl.textContent = currency(amount);
+    balanceEl.classList.add(amount >= 0 ? "balance-positive" : "balance-negative");
+    receivableCardsEl.appendChild(card);
+  }
+}
+
+function renderReceivableAdminList() {
+  if (receivablesCache.size === 0) {
+    receivableAdminCardsEl.innerHTML = `<p class="muted">Henüz alacaklı eklenmedi.</p>`;
+    return;
+  }
+  receivableAdminCardsEl.innerHTML = "";
+  const sorted = [...receivablesCache.entries()].sort((a, b) => (b[1].amount || 0) - (a[1].amount || 0));
+  for (const [id, data] of sorted) {
+    const amount = data.amount || 0;
+    const label = receivableLabel(data.companyName, data.contactName);
+    const card = receivableAdminCardTemplate.content.cloneNode(true);
+    card.querySelector(".admin-card-name").textContent = label;
+
+    const pill = card.querySelector(".ph-net");
+    pill.textContent = currency(amount);
+    pill.classList.add(amount >= 0 ? "balance-positive" : "balance-negative");
+
+    const addInput = card.querySelector(".receivable-add-input");
+    card.querySelector(".receivable-add-debt-btn").addEventListener("click", async () => {
+      const value = parseFloat(addInput.value);
+      if (!Number.isFinite(value) || value <= 0) return;
+      await adjustReceivable(id, data.companyName, data.contactName, value, "add");
+      addInput.value = "";
+    });
+
+    const collectInput = card.querySelector(".receivable-collect-input");
+    card.querySelector(".receivable-collect-btn").addEventListener("click", async () => {
+      const value = parseFloat(collectInput.value);
+      if (!Number.isFinite(value) || value <= 0) return;
+      await adjustReceivable(id, data.companyName, data.contactName, -value, "collect");
+      collectInput.value = "";
+    });
+
+    receivableAdminCardsEl.appendChild(card);
+  }
+}
+
+receivableAddBtn.addEventListener("click", async () => {
+  receivableFormError.textContent = "";
+  const companyName = receivableCompanyNameInput.value.trim();
+  const contactName = receivableContactNameInput.value.trim();
+  const initialAmount = parseFloat(receivableInitialAmountInput.value);
+
+  if (!companyName) { receivableFormError.textContent = "Firma adı girin."; return; }
+  if (!Number.isFinite(initialAmount) || initialAmount < 0) { receivableFormError.textContent = "Geçerli bir başlangıç borcu girin."; return; }
+
+  receivableAddBtn.disabled = true;
+  try {
+    const label = receivableLabel(companyName, contactName);
+    const batch = writeBatch(db);
+    const receivableRef = doc(collection(db, "receivables"));
+    batch.set(receivableRef, { companyName, contactName: contactName || null, amount: initialAmount });
+    batch.set(doc(collection(db, "transactions")), {
+      kind: "receivable_create",
+      receivableId: receivableRef.id,
+      companyName,
+      contactName: contactName || null,
+      amount: initialAmount,
+      note: buildReceivableCreateNote(label, initialAmount),
+      createdAt: serverTimestamp()
+    });
+    await batch.commit();
+
+    receivableCompanyNameInput.value = "";
+    receivableContactNameInput.value = "";
+    receivableInitialAmountInput.value = "";
+  } catch (err) {
+    receivableFormError.textContent = "Alacaklı eklenemedi.";
+    console.error(err);
+  } finally {
+    receivableAddBtn.disabled = false;
+  }
+});
+
+async function adjustReceivable(id, companyName, contactName, delta, action) {
+  receivableFormError.textContent = "";
+  try {
+    const label = receivableLabel(companyName, contactName);
+    const current = receivablesCache.get(id)?.amount || 0;
+    const newBalance = current + delta;
+    const note = action === "add"
+      ? buildReceivableAddNote(label, delta, newBalance)
+      : buildReceivableCollectNote(label, Math.abs(delta), newBalance);
+
+    const batch = writeBatch(db);
+    batch.update(doc(db, "receivables", id), { amount: increment(delta) });
+    batch.set(doc(collection(db, "transactions")), {
+      kind: action === "add" ? "receivable_add" : "receivable_collect",
+      receivableId: id,
+      companyName,
+      contactName: contactName || null,
+      amount: delta,
+      note,
+      createdAt: serverTimestamp()
+    });
+    await batch.commit();
+  } catch (err) {
+    receivableFormError.textContent = "İşlem başarısız oldu.";
+    console.error(err);
+  }
+}

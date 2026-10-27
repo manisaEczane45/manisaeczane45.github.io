@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
 
@@ -44,6 +44,7 @@
 
   <nav class="tabs">
     <button type="button" class="tab-btn active" data-tab="pharmacies">Eczaneler</button>
+    <button type="button" class="tab-btn" data-tab="receivables">Alacaklar</button>
     <button type="button" class="tab-btn hidden" data-tab="admin" id="admin-tab-btn">Admin Paneli</button>
     <button type="button" class="tab-btn" data-tab="log">İşlem Geçmişi</button>
   </nav>
@@ -54,6 +55,16 @@
         <h2>Eczaneler ve Cari Bakiyeler</h2>
       </div>
       <div id="pharmacy-cards" class="card-grid">
+        <p class="muted">Yükleniyor...</p>
+      </div>
+    </section>
+
+    <section id="tab-panel-receivables" class="tab-panel hidden">
+      <div class="section-head">
+        <h2>Alacaklar</h2>
+        <p class="muted small">Firma/tedarikçilerden tahsil edilecek tutarlar, borçtan aza doğru sıralı.</p>
+      </div>
+      <div id="receivable-cards" class="card-grid">
         <p class="muted">Yükleniyor...</p>
       </div>
     </section>
@@ -123,6 +134,37 @@
         <p class="muted">Yükleniyor...</p>
       </div>
       <p id="admin-error" class="error-text"></p>
+
+      <div class="panel-card">
+        <h3>Alacaklar Yönetimi</h3>
+        <p class="muted small">
+          Firma/tedarikçilerden tahsil edilecek tutarları buradan takip edin. Yeni bir
+          alacaklı ekleyin, sonra borç arttıkça "Borç Ekle", tahsilat yapıldıkça
+          "Tahsilat Gir" ile güncelleyin. Herkes "Alacaklar" sekmesinden güncel borçları görür.
+        </p>
+        <div class="dist-form-top">
+          <div class="field-group">
+            <label>Firma Adı</label>
+            <input type="text" id="receivable-company-name" placeholder="Örn. Levotiron">
+          </div>
+          <div class="field-group">
+            <label>Yetkili Adı</label>
+            <input type="text" id="receivable-contact-name" placeholder="Örn. Halil İbrahim">
+          </div>
+          <div class="field-group">
+            <label>Başlangıç Borcu (TL)</label>
+            <input type="number" id="receivable-initial-amount" placeholder="10000" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="dist-actions">
+          <button type="button" id="receivable-add-btn" class="btn btn-primary">Alacaklı Ekle</button>
+        </div>
+        <p id="receivable-form-error" class="error-text"></p>
+      </div>
+
+      <div id="receivable-admin-cards" class="card-grid">
+        <p class="muted">Yükleniyor...</p>
+      </div>
     </section>
 
     <section id="tab-panel-log" class="tab-panel hidden">
@@ -166,6 +208,38 @@
   </article>
 </template>
 
+<template id="receivable-card-template">
+  <article class="ph-card">
+    <div class="ph-card-name"></div>
+    <div class="ph-card-balance"></div>
+  </article>
+</template>
+
+<template id="receivable-admin-card-template">
+  <article class="admin-card">
+    <div class="admin-card-head">
+      <span class="admin-card-name"></span>
+      <span class="balance-pill ph-net"></span>
+    </div>
+    <div class="admin-card-actions">
+      <div class="field-group">
+        <label>Borç Ekle</label>
+        <div class="input-row">
+          <input type="number" class="receivable-add-input" placeholder="Tutar (TL)" step="0.01" min="0">
+          <button type="button" class="receivable-add-debt-btn btn btn-secondary">Ekle</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Tahsilat Gir</label>
+        <div class="input-row">
+          <input type="number" class="receivable-collect-input" placeholder="Tutar (TL)" step="0.01" min="0">
+          <button type="button" class="receivable-collect-btn btn btn-primary">Tahsil Et</button>
+        </div>
+      </div>
+    </div>
+  </article>
+</template>
+
 <template id="admin-card-template">
   <article class="admin-card">
     <div class="admin-card-head">
@@ -191,6 +265,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=12"></script>
+<script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>
