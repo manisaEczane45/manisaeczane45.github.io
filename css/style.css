@@ -508,7 +508,8 @@ main {
   font-weight: 600;
 }
 
-.tx-edit-btn {
+.tx-edit-btn,
+.tx-delete-btn {
   padding: 5px 12px;
   font-size: 0.76rem;
   flex-shrink: 0;

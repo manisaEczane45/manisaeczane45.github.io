@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=14";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=15";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -229,6 +229,7 @@ function subscribeReceivables() {
 }
 
 const EDITABLE_KINDS = ["payment", "distribution", "total_update"];
+const DELETABLE_KINDS = ["payment", "distribution", "receivable_create", "receivable_add", "receivable_collect", "receivable_delete"];
 
 function subscribeTransactions() {
   const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100));
@@ -271,6 +272,9 @@ function buildTxListItem(txId, tx) {
   row.appendChild(dateSpan);
 
   const canEdit = isAdmin && tx.pharmacyId && EDITABLE_KINDS.includes(tx.kind);
+  const canDelete = isAdmin && DELETABLE_KINDS.includes(tx.kind);
+  let editForm = null;
+
   if (canEdit) {
     const editBtn = document.createElement("button");
     editBtn.type = "button";
@@ -278,20 +282,57 @@ function buildTxListItem(txId, tx) {
     editBtn.textContent = "Düzenle";
     row.appendChild(editBtn);
 
-    const editForm = buildTxEditForm(txId, tx, () => editForm.classList.add("hidden"));
+    editForm = buildTxEditForm(txId, tx, () => editForm.classList.add("hidden"));
     editForm.classList.add("hidden");
 
     editBtn.addEventListener("click", () => {
       editForm.classList.toggle("hidden");
     });
-
-    li.appendChild(row);
-    li.appendChild(editForm);
-  } else {
-    li.appendChild(row);
   }
 
+  if (canDelete) {
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-danger tx-delete-btn";
+    deleteBtn.textContent = "Sil";
+    deleteBtn.addEventListener("click", async () => {
+      const confirmed = confirm("Bu işlem kaydı kalıcı olarak silinecek. Emin misiniz?");
+      if (!confirmed) return;
+      deleteBtn.disabled = true;
+      try {
+        await deleteTransaction(txId, tx);
+      } catch (err) {
+        adminError.textContent = "İşlem silinemedi.";
+        console.error(err);
+      } finally {
+        deleteBtn.disabled = false;
+      }
+    });
+    row.appendChild(deleteBtn);
+  }
+
+  li.appendChild(row);
+  if (editForm) li.appendChild(editForm);
+
   return li;
+}
+
+async function deleteTransaction(txId, tx) {
+  const batch = writeBatch(db);
+
+  if (tx.kind === "payment" && tx.pharmacyId) {
+    batch.update(doc(db, "pharmacies", tx.pharmacyId), { paidCari: increment(-(tx.amount || 0)) });
+  } else if (tx.kind === "distribution" && tx.pharmacyId) {
+    batch.update(doc(db, "pharmacies", tx.pharmacyId), { totalCari: increment(-(tx.amount || 0)) });
+  } else if (
+    (tx.kind === "receivable_add" || tx.kind === "receivable_collect") &&
+    tx.receivableId && receivablesCache.has(tx.receivableId)
+  ) {
+    batch.update(doc(db, "receivables", tx.receivableId), { amount: increment(-(tx.amount || 0)) });
+  }
+
+  batch.delete(doc(db, "transactions", txId));
+  await batch.commit();
 }
 
 function buildTxEditForm(txId, tx, closeForm) {
