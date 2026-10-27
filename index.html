@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 
@@ -55,28 +55,30 @@
         <h2>Eczaneler ve Cari Bakiyeler</h2>
       </div>
 
-      <div class="panel-card">
-        <h3>Güncel Cari Sıralaması</h3>
-        <p class="muted small">Toplam − Ödenen, en yüksekten en düşüğe.</p>
-        <ul id="net-ranking-list" class="rank-list">
-          <li class="muted">Yükleniyor...</li>
-        </ul>
-      </div>
+      <div class="ranking-grid">
+        <div class="panel-card">
+          <h3>Güncel Cari Sıralaması</h3>
+          <p class="muted small">Toplam − Ödenen, en yüksekten en düşüğe.</p>
+          <ul id="net-ranking-list" class="rank-list">
+            <li class="muted">Yükleniyor...</li>
+          </ul>
+        </div>
 
-      <div class="panel-card">
-        <h3>En Çok Yemek Kesilen</h3>
-        <p class="muted small">Bugüne kadar en çok ödeme/kesinti yapılan eczaneler.</p>
-        <ul id="paid-ranking-list" class="rank-list">
-          <li class="muted">Yükleniyor...</li>
-        </ul>
-      </div>
+        <div class="panel-card">
+          <h3>En Çok Yemek Kesilen</h3>
+          <p class="muted small">Bugüne kadar en çok ödeme/kesinti yapılan eczaneler.</p>
+          <ul id="paid-ranking-list" class="rank-list">
+            <li class="muted">Yükleniyor...</li>
+          </ul>
+        </div>
 
-      <div class="panel-card">
-        <h3>En Çok Yemek Alan</h3>
-        <p class="muted small">Bugüne kadar en çok yemek+iskonto tutarı kazanan eczaneler.</p>
-        <ul id="total-ranking-list" class="rank-list">
-          <li class="muted">Yükleniyor...</li>
-        </ul>
+        <div class="panel-card">
+          <h3>En Çok Yemek Alan</h3>
+          <p class="muted small">Bugüne kadar en çok yemek+iskonto tutarı kazanan eczaneler.</p>
+          <ul id="total-ranking-list" class="rank-list">
+            <li class="muted">Yükleniyor...</li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -285,6 +287,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=16"></script>
+<script type="module" src="js/app.js?v=17"></script>
 </body>
 </html>
