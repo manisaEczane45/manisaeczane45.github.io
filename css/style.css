@@ -278,34 +278,6 @@ main {
   gap: 14px;
 }
 
-.ph-card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  transition: transform 0.12s, box-shadow 0.12s;
-}
-
-.ph-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(16,24,40,0.06), 0 12px 24px rgba(16,24,40,0.08);
-}
-
-.ph-card-name {
-  font-weight: 600;
-  font-size: 0.92rem;
-  margin-bottom: 10px;
-  color: var(--text);
-}
-
-.ph-card-balance {
-  font-size: 1.35rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-
 /* Balance colors */
 .balance-positive { color: var(--positive); }
 .balance-negative { color: var(--negative); }
@@ -535,6 +507,59 @@ main {
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.88rem;
+}
+
+/* Ranked lists (pharmacy/receivable leaderboards) */
+.rank-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.rank-list li.muted {
+  padding: 14px 20px;
+  font-size: 0.9rem;
+}
+
+.rank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rank-row:last-child { border-bottom: none; }
+
+.rank-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rank-medal { font-size: 1.1rem; flex-shrink: 0; }
+
+.rank-number {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.rank-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=15";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=16";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -18,13 +18,14 @@ const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const currentUserLabel = document.getElementById("current-user-label");
 const logoutBtn = document.getElementById("logout-btn");
-const pharmacyCardsEl = document.getElementById("pharmacy-cards");
+const netRankingListEl = document.getElementById("net-ranking-list");
+const paidRankingListEl = document.getElementById("paid-ranking-list");
+const totalRankingListEl = document.getElementById("total-ranking-list");
 const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
 const clearLogBtn = document.getElementById("clear-log-btn");
 const resetDataBtn = document.getElementById("reset-data-btn");
-const pharmacyCardTemplate = document.getElementById("pharmacy-card-template");
 const adminCardTemplate = document.getElementById("admin-card-template");
 
 const distDrugNameInput = document.getElementById("dist-drug-name");
@@ -42,9 +43,8 @@ const budgetAddRowBtn = document.getElementById("budget-add-row-btn");
 const budgetResetBtn = document.getElementById("budget-reset-btn");
 const budgetRowTemplate = document.getElementById("budget-row-template");
 
-const receivableCardsEl = document.getElementById("receivable-cards");
+const receivableRankingListEl = document.getElementById("receivable-ranking-list");
 const receivableAdminCardsEl = document.getElementById("receivable-admin-cards");
-const receivableCardTemplate = document.getElementById("receivable-card-template");
 const receivableAdminCardTemplate = document.getElementById("receivable-admin-card-template");
 const receivableCompanyNameInput = document.getElementById("receivable-company-name");
 const receivableContactNameInput = document.getElementById("receivable-contact-name");
@@ -198,13 +198,15 @@ function subscribePharmacies() {
   unsubPharmacies = onSnapshot(q, (snapshot) => {
     pharmaciesCache.clear();
     snapshot.forEach((docSnap) => pharmaciesCache.set(docSnap.id, docSnap.data()));
-    renderPharmacyList();
+    renderPharmacyRankings();
     if (isAdmin) {
       renderAdminList();
       renderDistRows();
     }
   }, (err) => {
-    pharmacyCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
+    [netRankingListEl, paidRankingListEl, totalRankingListEl].forEach((el) => {
+      el.innerHTML = `<li class="error-text">Veriler yüklenemedi.</li>`;
+    });
     if (isAdmin) {
       adminCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     }
@@ -217,10 +219,10 @@ function subscribeReceivables() {
   unsubReceivables = onSnapshot(q, (snapshot) => {
     receivablesCache.clear();
     snapshot.forEach((docSnap) => receivablesCache.set(docSnap.id, docSnap.data()));
-    renderReceivableList();
+    renderReceivableRankings();
     if (isAdmin) renderReceivableAdminList();
   }, (err) => {
-    receivableCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
+    receivableRankingListEl.innerHTML = `<li class="error-text">Veriler yüklenemedi.</li>`;
     if (isAdmin) {
       receivableAdminCardsEl.innerHTML = `<p class="error-text">Veriler yüklenemedi.</p>`;
     }
@@ -447,22 +449,56 @@ function netCariOf(data) {
   return (data.totalCari || 0) - (data.paidCari || 0);
 }
 
-function renderPharmacyList() {
-  if (pharmaciesCache.size === 0) {
-    pharmacyCardsEl.innerHTML = `<p class="muted">Eczane bulunamadı.</p>`;
+const RANK_MEDALS = ["🥇", "🥈", "🥉"];
+
+function renderRankingList(container, sortedValues) {
+  if (sortedValues.length === 0) {
+    container.innerHTML = `<li class="muted">Veri yok.</li>`;
     return;
   }
-  pharmacyCardsEl.innerHTML = "";
-  const sorted = [...pharmaciesCache.entries()].sort((a, b) => netCariOf(b[1]) - netCariOf(a[1]));
-  for (const [, data] of sorted) {
-    const net = netCariOf(data);
-    const card = pharmacyCardTemplate.content.cloneNode(true);
-    card.querySelector(".ph-card-name").textContent = data.name;
-    const balanceEl = card.querySelector(".ph-card-balance");
-    balanceEl.textContent = currency(net);
-    balanceEl.classList.add(net >= 0 ? "balance-positive" : "balance-negative");
-    pharmacyCardsEl.appendChild(card);
-  }
+  container.innerHTML = "";
+  sortedValues.forEach(({ name, value }, idx) => {
+    const li = document.createElement("li");
+    li.className = "rank-row";
+
+    const left = document.createElement("span");
+    left.className = "rank-left";
+    const rankMark = document.createElement("span");
+    rankMark.className = RANK_MEDALS[idx] ? "rank-medal" : "rank-number";
+    rankMark.textContent = RANK_MEDALS[idx] || `${idx + 1}.`;
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "rank-name";
+    nameSpan.textContent = name;
+    left.appendChild(rankMark);
+    left.appendChild(nameSpan);
+
+    const valueSpan = document.createElement("span");
+    valueSpan.className = "balance-pill " + (value >= 0 ? "balance-positive" : "balance-negative");
+    valueSpan.textContent = currency(value);
+
+    li.appendChild(left);
+    li.appendChild(valueSpan);
+    container.appendChild(li);
+  });
+}
+
+function renderPharmacyRankings() {
+  const entries = [...pharmaciesCache.values()];
+
+  const byNet = entries
+    .map((data) => ({ name: data.name, value: netCariOf(data) }))
+    .sort((a, b) => b.value - a.value);
+  renderRankingList(netRankingListEl, byNet);
+
+  const byPaid = entries
+    .map((data) => ({ name: data.name, value: data.paidCari || 0 }))
+    .sort((a, b) => b.value - a.value);
+  renderRankingList(paidRankingListEl, byPaid);
+
+  const byTotal = entries
+    .map((data) => ({ name: data.name, value: data.totalCari || 0 }))
+    .sort((a, b) => b.value - a.value);
+  renderRankingList(totalRankingListEl, byTotal);
 }
 
 function renderAdminList() {
@@ -779,22 +815,11 @@ budgetResetBtn.addEventListener("click", () => {
   renderBudgetRows();
 });
 
-function renderReceivableList() {
-  if (receivablesCache.size === 0) {
-    receivableCardsEl.innerHTML = `<p class="muted">Henüz alacaklı eklenmedi.</p>`;
-    return;
-  }
-  receivableCardsEl.innerHTML = "";
-  const sorted = [...receivablesCache.entries()].sort((a, b) => (b[1].amount || 0) - (a[1].amount || 0));
-  for (const [, data] of sorted) {
-    const amount = data.amount || 0;
-    const card = receivableCardTemplate.content.cloneNode(true);
-    card.querySelector(".ph-card-name").textContent = receivableLabel(data.companyName, data.contactName);
-    const balanceEl = card.querySelector(".ph-card-balance");
-    balanceEl.textContent = currency(amount);
-    balanceEl.classList.add(amount >= 0 ? "balance-positive" : "balance-negative");
-    receivableCardsEl.appendChild(card);
-  }
+function renderReceivableRankings() {
+  const byAmount = [...receivablesCache.values()]
+    .map((data) => ({ name: receivableLabel(data.companyName, data.contactName), value: data.amount || 0 }))
+    .sort((a, b) => b.value - a.value);
+  renderRankingList(receivableRankingListEl, byAmount);
 }
 
 function renderReceivableAdminList() {
