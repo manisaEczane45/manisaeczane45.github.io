@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 
@@ -70,100 +70,112 @@
     </section>
 
     <section id="tab-panel-admin" class="tab-panel hidden">
-      <div class="section-head section-head-row">
-        <div>
-          <h2>Admin Paneli</h2>
+      <div class="section-head">
+        <h2>Admin Paneli</h2>
+      </div>
+
+      <nav class="subtabs">
+        <button type="button" class="subtab-btn active" data-subtab="pharmacies">Eczane Bakiyeleri</button>
+        <button type="button" class="subtab-btn" data-subtab="drugs">İlaç Araçları</button>
+        <button type="button" class="subtab-btn" data-subtab="receivables">Alacaklar Yönetimi</button>
+      </nav>
+
+      <div id="admin-subpanel-pharmacies" class="admin-subpanel">
+        <div class="section-head section-head-row">
           <p class="muted small">
             <strong>Toplam Cari</strong>: Cofaa platformundan gelecek yemek + iskonto tutarı (şu an "İlaç ile Yemek Dağıtımı" aracıyla giriliyor).
             <strong>Ödenen Cari</strong>: eczanenin yaptığı ödemelerin toplamı.
             <strong>Güncel Cari</strong> = Toplam − Ödenen.
           </p>
+          <button type="button" id="reset-data-btn" class="btn btn-danger">Tüm Bakiyeleri Sıfırla</button>
         </div>
-        <button type="button" id="reset-data-btn" class="btn btn-danger">Tüm Bakiyeleri Sıfırla</button>
+        <div id="admin-cards" class="card-grid">
+          <p class="muted">Yükleniyor...</p>
+        </div>
+        <p id="admin-error" class="error-text"></p>
       </div>
 
-      <div class="panel-card">
-        <h3>İlaçlara Göre Yemek Payı Hesabı</h3>
-        <p class="muted small">
-          Sadece hesaplama amaçlıdır, hiçbir eczanenin carisini değiştirmez. Toplam yemek
-          tutarını girin, ilaçları (sayı + birim fiyat) ekleyin; her ilacın toplam tutar
-          içindeki ağırlığına göre ne kadar yemek payı düştüğünü gösterir. Sonucu aşağıdaki
-          "İlaç ile Yemek Dağıtımı" bölümüne siz elle taşırsınız.
-        </p>
-        <div class="field-group">
-          <label>Toplam Yemek Tutarı (TL)</label>
-          <input type="number" id="budget-total-amount" placeholder="13000" step="0.01" min="0">
-        </div>
-        <div id="budget-rows" class="dist-rows"></div>
-        <div class="dist-actions">
-          <button type="button" id="budget-add-row-btn" class="btn btn-secondary">+ İlaç Ekle</button>
-          <button type="button" id="budget-reset-btn" class="btn btn-danger">Sıfırla</button>
-        </div>
-      </div>
-
-      <div class="panel-card">
-        <h3>İlaç ile Yemek Dağıtımı</h3>
-        <p class="muted small">
-          Cofaa entegrasyonu hazır olana kadar: bir ilacın toplam adedini ve bu ilaç için
-          dağıtılacak toplam yemek tutarını girin, hangi eczane kaç adet aldıysa ekleyin;
-          "Yemek Bölüştür" o oranda her eczanenin Toplam Cari'sine otomatik ekler.
-        </p>
-        <div class="dist-form-top">
-          <div class="field-group">
-            <label>İlaç Adı</label>
-            <input type="text" id="dist-drug-name" placeholder="Örn. Arveles">
-          </div>
-          <div class="field-group">
-            <label>Toplam İlaç Adedi</label>
-            <input type="number" id="dist-total-units" placeholder="500" step="1" min="0">
-          </div>
+      <div id="admin-subpanel-drugs" class="admin-subpanel hidden">
+        <div class="panel-card">
+          <h3>İlaçlara Göre Yemek Payı Hesabı</h3>
+          <p class="muted small">
+            Sadece hesaplama amaçlıdır, hiçbir eczanenin carisini değiştirmez. Toplam yemek
+            tutarını girin, ilaçları (sayı + birim fiyat) ekleyin; her ilacın toplam tutar
+            içindeki ağırlığına göre ne kadar yemek payı düştüğünü gösterir. Sonucu aşağıdaki
+            "İlaç ile Yemek Dağıtımı" bölümüne siz elle taşırsınız.
+          </p>
           <div class="field-group">
             <label>Toplam Yemek Tutarı (TL)</label>
-            <input type="number" id="dist-total-amount" placeholder="1000" step="0.01" min="0">
+            <input type="number" id="budget-total-amount" placeholder="13000" step="0.01" min="0">
+          </div>
+          <div id="budget-rows" class="dist-rows"></div>
+          <div class="dist-actions">
+            <button type="button" id="budget-add-row-btn" class="btn btn-secondary">+ İlaç Ekle</button>
+            <button type="button" id="budget-reset-btn" class="btn btn-danger">Sıfırla</button>
           </div>
         </div>
-        <div id="dist-rows" class="dist-rows"></div>
-        <div class="dist-actions">
-          <button type="button" id="dist-add-row-btn" class="btn btn-secondary">+ Eczane Ekle</button>
-          <button type="button" id="dist-submit-btn" class="btn btn-primary">Yemek Bölüştür</button>
+
+        <div class="panel-card">
+          <h3>İlaç ile Yemek Dağıtımı</h3>
+          <p class="muted small">
+            Cofaa entegrasyonu hazır olana kadar: bir ilacın toplam adedini ve bu ilaç için
+            dağıtılacak toplam yemek tutarını girin, hangi eczane kaç adet aldıysa ekleyin;
+            "Yemek Bölüştür" o oranda her eczanenin Toplam Cari'sine otomatik ekler.
+          </p>
+          <div class="dist-form-top">
+            <div class="field-group">
+              <label>İlaç Adı</label>
+              <input type="text" id="dist-drug-name" placeholder="Örn. Arveles">
+            </div>
+            <div class="field-group">
+              <label>Toplam İlaç Adedi</label>
+              <input type="number" id="dist-total-units" placeholder="500" step="1" min="0">
+            </div>
+            <div class="field-group">
+              <label>Toplam Yemek Tutarı (TL)</label>
+              <input type="number" id="dist-total-amount" placeholder="1000" step="0.01" min="0">
+            </div>
+          </div>
+          <div id="dist-rows" class="dist-rows"></div>
+          <div class="dist-actions">
+            <button type="button" id="dist-add-row-btn" class="btn btn-secondary">+ Eczane Ekle</button>
+            <button type="button" id="dist-submit-btn" class="btn btn-primary">Yemek Bölüştür</button>
+          </div>
+          <p id="dist-error" class="error-text"></p>
         </div>
-        <p id="dist-error" class="error-text"></p>
       </div>
 
-      <div id="admin-cards" class="card-grid">
-        <p class="muted">Yükleniyor...</p>
-      </div>
-      <p id="admin-error" class="error-text"></p>
-
-      <div class="panel-card">
-        <h3>Alacaklar Yönetimi</h3>
-        <p class="muted small">
-          Firma/tedarikçilerden tahsil edilecek tutarları buradan takip edin. Yeni bir
-          alacaklı ekleyin, sonra borç arttıkça "Borç Ekle", tahsilat yapıldıkça
-          "Tahsilat Gir" ile güncelleyin. Herkes "Alacaklar" sekmesinden güncel borçları görür.
-        </p>
-        <div class="dist-form-top">
-          <div class="field-group">
-            <label>Firma Adı</label>
-            <input type="text" id="receivable-company-name" placeholder="Örn. Levotiron">
+      <div id="admin-subpanel-receivables" class="admin-subpanel hidden">
+        <div class="panel-card">
+          <h3>Alacaklar Yönetimi</h3>
+          <p class="muted small">
+            Firma/tedarikçilerden tahsil edilecek tutarları buradan takip edin. Yeni bir
+            alacaklı ekleyin, sonra borç arttıkça "Borç Ekle", tahsilat yapıldıkça
+            "Tahsilat Gir" ile güncelleyin. Herkes "Alacaklar" sekmesinden güncel borçları görür.
+          </p>
+          <div class="dist-form-top">
+            <div class="field-group">
+              <label>Firma Adı</label>
+              <input type="text" id="receivable-company-name" placeholder="Örn. Levotiron">
+            </div>
+            <div class="field-group">
+              <label>Yetkili Adı</label>
+              <input type="text" id="receivable-contact-name" placeholder="Örn. Halil İbrahim">
+            </div>
+            <div class="field-group">
+              <label>Başlangıç Borcu (TL)</label>
+              <input type="number" id="receivable-initial-amount" placeholder="10000" step="0.01" min="0">
+            </div>
           </div>
-          <div class="field-group">
-            <label>Yetkili Adı</label>
-            <input type="text" id="receivable-contact-name" placeholder="Örn. Halil İbrahim">
+          <div class="dist-actions">
+            <button type="button" id="receivable-add-btn" class="btn btn-primary">Alacaklı Ekle</button>
           </div>
-          <div class="field-group">
-            <label>Başlangıç Borcu (TL)</label>
-            <input type="number" id="receivable-initial-amount" placeholder="10000" step="0.01" min="0">
-          </div>
+          <p id="receivable-form-error" class="error-text"></p>
         </div>
-        <div class="dist-actions">
-          <button type="button" id="receivable-add-btn" class="btn btn-primary">Alacaklı Ekle</button>
-        </div>
-        <p id="receivable-form-error" class="error-text"></p>
-      </div>
 
-      <div id="receivable-admin-cards" class="card-grid">
-        <p class="muted">Yükleniyor...</p>
+        <div id="receivable-admin-cards" class="card-grid">
+          <p class="muted">Yükleniyor...</p>
+        </div>
       </div>
     </section>
 
@@ -236,6 +248,7 @@
           <button type="button" class="receivable-collect-btn btn btn-primary">Tahsil Et</button>
         </div>
       </div>
+      <button type="button" class="receivable-delete-btn btn btn-danger">Alacaklıyı Sil</button>
     </div>
   </article>
 </template>
@@ -265,6 +278,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=13"></script>
+<script type="module" src="js/app.js?v=14"></script>
 </body>
 </html>

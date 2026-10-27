@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=13";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=14";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -74,6 +74,22 @@ function activateTab(tabKey) {
     panel.classList.toggle("hidden", key !== tabKey);
   });
 }
+
+const adminSubtabButtons = document.querySelectorAll(".subtab-btn");
+const adminSubpanels = {
+  pharmacies: document.getElementById("admin-subpanel-pharmacies"),
+  drugs: document.getElementById("admin-subpanel-drugs"),
+  receivables: document.getElementById("admin-subpanel-receivables"),
+};
+
+adminSubtabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    adminSubtabButtons.forEach((b) => b.classList.toggle("active", b === btn));
+    Object.entries(adminSubpanels).forEach(([key, panel]) => {
+      panel.classList.toggle("hidden", key !== btn.dataset.subtab);
+    });
+  });
+});
 
 const pharmaciesCache = new Map();
 const receivablesCache = new Map();
@@ -773,6 +789,12 @@ function renderReceivableAdminList() {
       collectInput.value = "";
     });
 
+    card.querySelector(".receivable-delete-btn").addEventListener("click", async () => {
+      const confirmed = confirm(`${label} alacaklı kaydı kalıcı olarak silinecek. Emin misiniz?`);
+      if (!confirmed) return;
+      await deleteReceivable(id, data.companyName, data.contactName);
+    });
+
     receivableAdminCardsEl.appendChild(card);
   }
 }
@@ -838,6 +860,28 @@ async function adjustReceivable(id, companyName, contactName, delta, action) {
     await batch.commit();
   } catch (err) {
     receivableFormError.textContent = "İşlem başarısız oldu.";
+    console.error(err);
+  }
+}
+
+async function deleteReceivable(id, companyName, contactName) {
+  receivableFormError.textContent = "";
+  try {
+    const label = receivableLabel(companyName, contactName);
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "receivables", id));
+    batch.set(doc(collection(db, "transactions")), {
+      kind: "receivable_delete",
+      receivableId: id,
+      companyName,
+      contactName: contactName || null,
+      amount: 0,
+      note: `${label}: alacaklı kaydı silindi`,
+      createdAt: serverTimestamp()
+    });
+    await batch.commit();
+  } catch (err) {
+    receivableFormError.textContent = "Alacaklı silinemedi.";
     console.error(err);
   }
 }
