@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=17";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=18";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -24,6 +24,7 @@ const totalRankingListEl = document.getElementById("total-ranking-list");
 const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
+const txSearchInput = document.getElementById("tx-search-input");
 const clearLogBtn = document.getElementById("clear-log-btn");
 const resetDataBtn = document.getElementById("reset-data-btn");
 const adminCardTemplate = document.getElementById("admin-card-template");
@@ -169,6 +170,9 @@ onAuthStateChanged(auth, async (user) => {
   if (unsubReceivables) { unsubReceivables(); unsubReceivables = null; }
   pharmaciesCache.clear();
   receivablesCache.clear();
+  fullTxDocs = null;
+  recentTxDocs = [];
+  txSearchInput.value = "";
 
   if (!user) {
     isAdmin = false;
@@ -233,21 +237,79 @@ function subscribeReceivables() {
 const EDITABLE_KINDS = ["payment", "distribution", "total_update"];
 const DELETABLE_KINDS = ["payment", "distribution", "receivable_create", "receivable_add", "receivable_collect", "receivable_delete"];
 
+let recentTxDocs = [];
+let fullTxDocs = null;
+let txSearchDebounce = null;
+
 function subscribeTransactions() {
   const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100));
   unsubTransactions = onSnapshot(q, (snapshot) => {
-    if (snapshot.empty) {
-      txLogEl.innerHTML = `<li class="muted">Henüz işlem yok.</li>`;
-      return;
-    }
-    txLogEl.innerHTML = "";
-    snapshot.forEach((docSnap) => {
-      txLogEl.appendChild(buildTxListItem(docSnap.id, docSnap.data()));
-    });
+    recentTxDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+    if (!txSearchInput.value.trim()) renderTxList(recentTxDocs);
   }, (err) => {
     txLogEl.innerHTML = `<li class="error-text">İşlem geçmişi yüklenemedi.</li>`;
     console.error(err);
   });
+}
+
+function renderTxList(docs) {
+  if (docs.length === 0) {
+    txLogEl.innerHTML = `<li class="muted">Henüz işlem yok.</li>`;
+    return;
+  }
+  txLogEl.innerHTML = "";
+  docs.forEach(({ id, data }) => {
+    txLogEl.appendChild(buildTxListItem(id, data));
+  });
+}
+
+const TX_SEARCH_RESULT_LIMIT = 200;
+
+async function runTxSearch() {
+  const term = txSearchInput.value.trim().toLocaleLowerCase("tr");
+  if (!term) {
+    renderTxList(recentTxDocs);
+    return;
+  }
+
+  if (!fullTxDocs) {
+    txLogEl.innerHTML = `<li class="muted">Aranıyor...</li>`;
+    try {
+      const snap = await getDocs(query(collection(db, "transactions"), orderBy("createdAt", "desc")));
+      fullTxDocs = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    } catch (err) {
+      txLogEl.innerHTML = `<li class="error-text">Arama yapılamadı.</li>`;
+      console.error(err);
+      return;
+    }
+  }
+
+  const matches = fullTxDocs.filter(({ data }) =>
+    (data.note || "").toLocaleLowerCase("tr").includes(term)
+  );
+
+  if (matches.length === 0) {
+    txLogEl.innerHTML = `<li class="muted">Sonuç bulunamadı.</li>`;
+    return;
+  }
+
+  renderTxList(matches.slice(0, TX_SEARCH_RESULT_LIMIT));
+  if (matches.length > TX_SEARCH_RESULT_LIMIT) {
+    const info = document.createElement("li");
+    info.className = "muted";
+    info.textContent = `${matches.length} sonuçtan ilk ${TX_SEARCH_RESULT_LIMIT} tanesi gösteriliyor, aramanızı daraltın.`;
+    txLogEl.appendChild(info);
+  }
+}
+
+txSearchInput.addEventListener("input", () => {
+  clearTimeout(txSearchDebounce);
+  txSearchDebounce = setTimeout(runTxSearch, 250);
+});
+
+function invalidateTxSearchCache() {
+  fullTxDocs = null;
+  if (txSearchInput.value.trim()) runTxSearch();
 }
 
 function buildTxListItem(txId, tx) {
@@ -303,6 +365,7 @@ function buildTxListItem(txId, tx) {
       deleteBtn.disabled = true;
       try {
         await deleteTransaction(txId, tx);
+        invalidateTxSearchCache();
       } catch (err) {
         adminError.textContent = "İşlem silinemedi.";
         console.error(err);
@@ -383,6 +446,7 @@ function buildTxEditForm(txId, tx, closeForm) {
     saveBtn.disabled = true;
     try {
       await editTransaction(txId, tx, newAmount, infoInput ? infoInput.value.trim() : undefined);
+      invalidateTxSearchCache();
       closeForm();
     } catch (err) {
       adminError.textContent = "İşlem düzenlenemedi.";
