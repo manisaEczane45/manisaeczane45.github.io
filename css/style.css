@@ -303,6 +303,8 @@ main {
   font-size: 0.82rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .balance-pill.balance-positive { background: var(--positive-tint); color: var(--positive); }
@@ -325,7 +327,7 @@ main {
   align-items: start;
 }
 
-.ranking-grid .panel-card { margin-bottom: 0; }
+.ranking-grid .panel-card { margin-bottom: 0; min-width: 0; }
 
 @media (max-width: 900px) {
   .ranking-grid { grid-template-columns: 1fr; }

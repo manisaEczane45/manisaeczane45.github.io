@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=22";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=23";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -569,21 +569,25 @@ function renderRankingList(container, sortedValues) {
   });
 }
 
+function shortPharmacyName(name) {
+  return (name || "").replace(/\s*eczanesi\s*$/i, "");
+}
+
 function renderPharmacyRankings() {
   const entries = [...pharmaciesCache.values()];
 
   const byNet = entries
-    .map((data) => ({ name: data.name, value: netCariOf(data) }))
+    .map((data) => ({ name: shortPharmacyName(data.name), value: netCariOf(data) }))
     .sort((a, b) => b.value - a.value);
   renderRankingList(netRankingListEl, byNet);
 
   const byPaid = entries
-    .map((data) => ({ name: data.name, value: data.paidCari || 0 }))
+    .map((data) => ({ name: shortPharmacyName(data.name), value: data.paidCari || 0 }))
     .sort((a, b) => b.value - a.value);
   renderRankingList(paidRankingListEl, byPaid);
 
   const byTotal = entries
-    .map((data) => ({ name: data.name, value: data.totalCari || 0 }))
+    .map((data) => ({ name: shortPharmacyName(data.name), value: data.totalCari || 0 }))
     .sort((a, b) => b.value - a.value);
   renderRankingList(totalRankingListEl, byTotal);
 }
