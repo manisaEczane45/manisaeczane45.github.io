@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=25";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=26";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -22,6 +22,7 @@ const netRankingListEl = document.getElementById("net-ranking-list");
 const paidRankingListEl = document.getElementById("paid-ranking-list");
 const totalRankingListEl = document.getElementById("total-ranking-list");
 const monthlyEarnedListEl = document.getElementById("monthly-earned-list");
+const totalEarnedValueEl = document.getElementById("total-earned-value");
 const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
@@ -305,6 +306,9 @@ function renderMonthlyEarned() {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     sums.set(key, (sums.get(key) || 0) + (data.amount || 0));
   }
+
+  const total = [...sums.values()].reduce((sum, v) => sum + v, 0);
+  if (totalEarnedValueEl) totalEarnedValueEl.textContent = currencyInt(total);
 
   if (sums.size === 0) {
     monthlyEarnedListEl.innerHTML = `<li class="muted">Henüz veri yok.</li>`;

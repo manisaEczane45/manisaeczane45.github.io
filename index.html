@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 </head>
 <body>
 
@@ -53,6 +53,9 @@
     <section id="tab-panel-pharmacies" class="tab-panel">
       <div class="section-head">
         <h2>Eczaneler ve Cari Bakiyeler</h2>
+        <div class="total-earned-banner">
+          Toplam Kazanılan Yemek: <strong id="total-earned-value">0 TL</strong>
+        </div>
       </div>
 
       <div class="ranking-grid">
@@ -299,6 +302,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=25"></script>
+<script type="module" src="js/app.js?v=26"></script>
 </body>
 </html>
