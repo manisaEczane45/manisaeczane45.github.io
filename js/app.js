@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=21";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=22";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -108,6 +108,8 @@ let budgetRowRefs = [];
 
 const currency = (n) =>
   (n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
+
+const currencyInt = (n) => Math.round(n || 0).toLocaleString("tr-TR") + " TL";
 
 const dateFmt = (ts) => {
   if (!ts || !ts.toDate) return "";
@@ -327,7 +329,7 @@ function renderMonthlyEarned() {
 
     const valueSpan = document.createElement("span");
     valueSpan.className = "balance-pill balance-positive";
-    valueSpan.textContent = Math.round(value).toLocaleString("tr-TR") + " TL";
+    valueSpan.textContent = currencyInt(value);
 
     li.appendChild(left);
     li.appendChild(valueSpan);
@@ -559,7 +561,7 @@ function renderRankingList(container, sortedValues) {
 
     const valueSpan = document.createElement("span");
     valueSpan.className = "balance-pill " + (value >= 0 ? "balance-positive" : "balance-negative");
-    valueSpan.textContent = currency(value);
+    valueSpan.textContent = currencyInt(value);
 
     li.appendChild(left);
     li.appendChild(valueSpan);
