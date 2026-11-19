@@ -532,9 +532,22 @@ main {
 
 .tx-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tx-note {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.tx-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .tx-log .tx-date {
@@ -542,6 +555,8 @@ main {
   font-size: 0.78rem;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 118px;
+  text-align: right;
 }
 
 .tx-edited-badge {
@@ -641,4 +656,6 @@ main {
   .card-grid { grid-template-columns: 1fr; }
   .admin-card-meta { flex-direction: column; gap: 4px; }
   .tx-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tx-right { width: 100%; margin-left: 0; justify-content: space-between; }
+  .tx-log .tx-date { min-width: 0; text-align: left; }
 }

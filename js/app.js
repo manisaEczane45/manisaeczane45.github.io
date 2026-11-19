@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=26";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=27";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -359,10 +359,14 @@ function buildTxListItem(txId, tx) {
   }
   row.appendChild(noteSpan);
 
+  const rightGroup = document.createElement("div");
+  rightGroup.className = "tx-right";
+  row.appendChild(rightGroup);
+
   const dateSpan = document.createElement("span");
   dateSpan.className = "tx-date";
   dateSpan.textContent = dateFmt(tx.createdAt);
-  row.appendChild(dateSpan);
+  rightGroup.appendChild(dateSpan);
 
   const canEdit = isAdmin && tx.pharmacyId && EDITABLE_KINDS.includes(tx.kind);
   const canDelete = isAdmin && DELETABLE_KINDS.includes(tx.kind);
@@ -373,7 +377,7 @@ function buildTxListItem(txId, tx) {
     editBtn.type = "button";
     editBtn.className = "btn btn-secondary tx-edit-btn";
     editBtn.textContent = "Düzenle";
-    row.appendChild(editBtn);
+    rightGroup.appendChild(editBtn);
 
     editForm = buildTxEditForm(txId, tx, () => editForm.classList.add("hidden"));
     editForm.classList.add("hidden");
@@ -401,7 +405,7 @@ function buildTxListItem(txId, tx) {
         deleteBtn.disabled = false;
       }
     });
-    row.appendChild(deleteBtn);
+    rightGroup.appendChild(deleteBtn);
   }
 
   li.appendChild(row);
