@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
 
@@ -79,6 +79,17 @@
             <li class="muted">Yükleniyor...</li>
           </ul>
         </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Aylık Hak Kazanılan Yemek</h3>
+        <p class="muted small">
+          İlaç dağıtımlarıyla tüm eczanelere o ay içinde eklenen toplam yemek tutarı.
+          Yeni bir dağıtım yapıldıkça kendi ayına otomatik eklenir.
+        </p>
+        <ul id="monthly-earned-list" class="rank-list">
+          <li class="muted">Yükleniyor...</li>
+        </ul>
       </div>
     </section>
 
@@ -288,6 +299,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=18"></script>
+<script type="module" src="js/app.js?v=19"></script>
 </body>
 </html>

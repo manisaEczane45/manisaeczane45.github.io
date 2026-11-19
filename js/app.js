@@ -1,10 +1,10 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=18";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=19";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, onSnapshot, query, orderBy, limit,
+  getFirestore, collection, doc, onSnapshot, query, orderBy,
   runTransaction, addDoc, serverTimestamp, getDocs, writeBatch, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -21,6 +21,7 @@ const logoutBtn = document.getElementById("logout-btn");
 const netRankingListEl = document.getElementById("net-ranking-list");
 const paidRankingListEl = document.getElementById("paid-ranking-list");
 const totalRankingListEl = document.getElementById("total-ranking-list");
+const monthlyEarnedListEl = document.getElementById("monthly-earned-list");
 const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
@@ -170,8 +171,7 @@ onAuthStateChanged(auth, async (user) => {
   if (unsubReceivables) { unsubReceivables(); unsubReceivables = null; }
   pharmaciesCache.clear();
   receivablesCache.clear();
-  fullTxDocs = null;
-  recentTxDocs = [];
+  allTxDocs = [];
   txSearchInput.value = "";
 
   if (!user) {
@@ -237,15 +237,14 @@ function subscribeReceivables() {
 const EDITABLE_KINDS = ["payment", "distribution", "total_update"];
 const DELETABLE_KINDS = ["payment", "distribution", "receivable_create", "receivable_add", "receivable_collect", "receivable_delete"];
 
-let recentTxDocs = [];
-let fullTxDocs = null;
-let txSearchDebounce = null;
+let allTxDocs = [];
 
 function subscribeTransactions() {
-  const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"), limit(100));
+  const q = query(collection(db, "transactions"), orderBy("createdAt", "desc"));
   unsubTransactions = onSnapshot(q, (snapshot) => {
-    recentTxDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
-    if (!txSearchInput.value.trim()) renderTxList(recentTxDocs);
+    allTxDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+    refreshTxView();
+    renderMonthlyEarned();
   }, (err) => {
     txLogEl.innerHTML = `<li class="error-text">İşlem geçmişi yüklenemedi.</li>`;
     console.error(err);
@@ -263,28 +262,18 @@ function renderTxList(docs) {
   });
 }
 
+const TX_RECENT_LIMIT = 100;
 const TX_SEARCH_RESULT_LIMIT = 200;
 
-async function runTxSearch() {
+function refreshTxView() {
   const term = txSearchInput.value.trim().toLocaleLowerCase("tr");
+
   if (!term) {
-    renderTxList(recentTxDocs);
+    renderTxList(allTxDocs.slice(0, TX_RECENT_LIMIT));
     return;
   }
 
-  if (!fullTxDocs) {
-    txLogEl.innerHTML = `<li class="muted">Aranıyor...</li>`;
-    try {
-      const snap = await getDocs(query(collection(db, "transactions"), orderBy("createdAt", "desc")));
-      fullTxDocs = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    } catch (err) {
-      txLogEl.innerHTML = `<li class="error-text">Arama yapılamadı.</li>`;
-      console.error(err);
-      return;
-    }
-  }
-
-  const matches = fullTxDocs.filter(({ data }) =>
+  const matches = allTxDocs.filter(({ data }) =>
     (data.note || "").toLocaleLowerCase("tr").includes(term)
   );
 
@@ -302,14 +291,48 @@ async function runTxSearch() {
   }
 }
 
-txSearchInput.addEventListener("input", () => {
-  clearTimeout(txSearchDebounce);
-  txSearchDebounce = setTimeout(runTxSearch, 250);
-});
+txSearchInput.addEventListener("input", refreshTxView);
 
-function invalidateTxSearchCache() {
-  fullTxDocs = null;
-  if (txSearchInput.value.trim()) runTxSearch();
+const TR_MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+function renderMonthlyEarned() {
+  const sums = new Map();
+  for (const { data } of allTxDocs) {
+    if (data.kind !== "distribution" || !data.createdAt?.toDate) continue;
+    const d = data.createdAt.toDate();
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    sums.set(key, (sums.get(key) || 0) + (data.amount || 0));
+  }
+
+  if (sums.size === 0) {
+    monthlyEarnedListEl.innerHTML = `<li class="muted">Henüz veri yok.</li>`;
+    return;
+  }
+
+  monthlyEarnedListEl.innerHTML = "";
+  [...sums.keys()].sort().forEach((key) => {
+    const [year, month] = key.split("-");
+    const label = `${TR_MONTHS[parseInt(month, 10) - 1]} ${year}`;
+    const value = sums.get(key);
+
+    const li = document.createElement("li");
+    li.className = "rank-row";
+
+    const left = document.createElement("span");
+    left.className = "rank-left";
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "rank-name";
+    nameSpan.textContent = label;
+    left.appendChild(nameSpan);
+
+    const valueSpan = document.createElement("span");
+    valueSpan.className = "balance-pill balance-positive";
+    valueSpan.textContent = currency(value);
+
+    li.appendChild(left);
+    li.appendChild(valueSpan);
+    monthlyEarnedListEl.appendChild(li);
+  });
 }
 
 function buildTxListItem(txId, tx) {
@@ -365,7 +388,6 @@ function buildTxListItem(txId, tx) {
       deleteBtn.disabled = true;
       try {
         await deleteTransaction(txId, tx);
-        invalidateTxSearchCache();
       } catch (err) {
         adminError.textContent = "İşlem silinemedi.";
         console.error(err);
@@ -446,7 +468,6 @@ function buildTxEditForm(txId, tx, closeForm) {
     saveBtn.disabled = true;
     try {
       await editTransaction(txId, tx, newAmount, infoInput ? infoInput.value.trim() : undefined);
-      invalidateTxSearchCache();
       closeForm();
     } catch (err) {
       adminError.textContent = "İşlem düzenlenemedi.";
