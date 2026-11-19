@@ -1,4 +1,4 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=20";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=21";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -312,7 +312,7 @@ function renderMonthlyEarned() {
   monthlyEarnedListEl.innerHTML = "";
   [...sums.keys()].sort().forEach((key) => {
     const [year, month] = key.split("-");
-    const label = `${TR_MONTHS[parseInt(month, 10) - 1]} ${year}`;
+    const label = `${TR_MONTHS[parseInt(month, 10) - 1]} '${year.slice(2)}`;
     const value = sums.get(key);
 
     const li = document.createElement("li");
@@ -327,7 +327,7 @@ function renderMonthlyEarned() {
 
     const valueSpan = document.createElement("span");
     valueSpan.className = "balance-pill balance-positive";
-    valueSpan.textContent = currency(value);
+    valueSpan.textContent = Math.round(value).toLocaleString("tr-TR") + " TL";
 
     li.appendChild(left);
     li.appendChild(valueSpan);

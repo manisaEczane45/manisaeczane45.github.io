@@ -194,7 +194,12 @@ h1, h2 { font-weight: 800; letter-spacing: -0.02em; }
   max-width: 1100px;
   margin: 20px auto 0;
   padding: 0 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+
+.tabs::-webkit-scrollbar { display: none; }
 
 .tab-btn {
   border: none;
@@ -206,6 +211,8 @@ h1, h2 { font-weight: 800; letter-spacing: -0.02em; }
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -221,7 +228,12 @@ h1, h2 { font-weight: 800; letter-spacing: -0.02em; }
   gap: 20px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+
+.subtabs::-webkit-scrollbar { display: none; }
 
 .subtab-btn {
   border: none;
@@ -232,6 +244,8 @@ h1, h2 { font-weight: 800; letter-spacing: -0.02em; }
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
