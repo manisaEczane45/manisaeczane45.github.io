@@ -1,10 +1,10 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=29";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=30";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, onSnapshot, query, orderBy,
+  getFirestore, collection, doc, onSnapshot, query, orderBy, where,
   runTransaction, addDoc, serverTimestamp, getDocs, writeBatch, increment, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -70,6 +70,8 @@ const supportPayoutNoteInput = document.getElementById("support-payout-note");
 const supportPayoutBtn = document.getElementById("support-payout-btn");
 const supportPayoutError = document.getElementById("support-payout-error");
 
+const trashListEl = document.getElementById("trash-list");
+
 const tabButtons = document.querySelectorAll(".tab-btn");
 const adminTabBtn = document.getElementById("admin-tab-btn");
 const tabPanels = {
@@ -99,6 +101,7 @@ const adminSubpanels = {
   drugs: document.getElementById("admin-subpanel-drugs"),
   receivables: document.getElementById("admin-subpanel-receivables"),
   support: document.getElementById("admin-subpanel-support"),
+  trash: document.getElementById("admin-subpanel-trash"),
 };
 
 adminSubtabButtons.forEach((btn) => {
@@ -116,6 +119,8 @@ let isAdmin = false;
 let unsubPharmacies = null;
 let unsubTransactions = null;
 let unsubReceivables = null;
+let unsubDeletedTx = null;
+let deletedTxDocs = [];
 
 let distRows = [];
 let distRowRefs = [];
@@ -209,9 +214,11 @@ onAuthStateChanged(auth, async (user) => {
   if (unsubPharmacies) { unsubPharmacies(); unsubPharmacies = null; }
   if (unsubTransactions) { unsubTransactions(); unsubTransactions = null; }
   if (unsubReceivables) { unsubReceivables(); unsubReceivables = null; }
+  if (unsubDeletedTx) { unsubDeletedTx(); unsubDeletedTx = null; }
   pharmaciesCache.clear();
   receivablesCache.clear();
   allTxDocs = [];
+  deletedTxDocs = [];
   txSearchInput.value = "";
 
   if (!user) {
@@ -235,6 +242,7 @@ onAuthStateChanged(auth, async (user) => {
   subscribePharmacies();
   subscribeTransactions();
   subscribeReceivables();
+  if (isAdmin) subscribeDeletedTransactions();
 });
 
 function subscribePharmacies() {
@@ -475,8 +483,68 @@ async function deleteTransaction(txId, tx) {
     batch.update(doc(db, "receivables", tx.receivableId), { amount: increment(-(tx.amount || 0)) });
   }
 
+  batch.set(doc(collection(db, "deleted_transactions")), {
+    ...tx,
+    originalId: txId,
+    deletedAt: serverTimestamp(),
+    deletedBy: auth.currentUser?.email || null,
+  });
   batch.delete(doc(db, "transactions", txId));
   await batch.commit();
+}
+
+const TRASH_RETENTION_DAYS = 90;
+
+function subscribeDeletedTransactions() {
+  const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const q = query(
+    collection(db, "deleted_transactions"),
+    where("deletedAt", ">=", cutoff),
+    orderBy("deletedAt", "desc")
+  );
+  unsubDeletedTx = onSnapshot(q, (snapshot) => {
+    deletedTxDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+    renderTrashList();
+  }, (err) => {
+    if (trashListEl) trashListEl.innerHTML = `<li class="error-text">Silinenler yüklenemedi.</li>`;
+    console.error(err);
+  });
+}
+
+function renderTrashList() {
+  if (!trashListEl) return;
+  if (deletedTxDocs.length === 0) {
+    trashListEl.innerHTML = `<li class="muted">Son ${TRASH_RETENTION_DAYS} günde silinen işlem yok.</li>`;
+    return;
+  }
+  trashListEl.innerHTML = "";
+  deletedTxDocs.forEach(({ data }) => {
+    const li = document.createElement("li");
+    li.className = "tx-item";
+
+    const row = document.createElement("div");
+    row.className = "tx-row";
+
+    const noteSpan = document.createElement("span");
+    noteSpan.className = "tx-note";
+    noteSpan.textContent = data.note || "";
+    const badge = document.createElement("span");
+    badge.className = "tx-edited-badge muted";
+    badge.textContent = ` (silen: ${data.deletedBy ? data.deletedBy.split("@")[0] : "bilinmiyor"})`;
+    noteSpan.appendChild(badge);
+    row.appendChild(noteSpan);
+
+    const rightGroup = document.createElement("div");
+    rightGroup.className = "tx-right";
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "tx-date";
+    dateSpan.textContent = dateFmt(data.deletedAt);
+    rightGroup.appendChild(dateSpan);
+    row.appendChild(rightGroup);
+
+    li.appendChild(row);
+    trashListEl.appendChild(li);
+  });
 }
 
 function buildTxEditForm(txId, tx, closeForm) {

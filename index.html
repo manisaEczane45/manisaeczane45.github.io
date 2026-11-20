@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
 
@@ -139,6 +139,7 @@
         <button type="button" class="subtab-btn" data-subtab="drugs">İlaç Araçları</button>
         <button type="button" class="subtab-btn" data-subtab="receivables">Alacaklar Yönetimi</button>
         <button type="button" class="subtab-btn" data-subtab="support">Destek Ekibi</button>
+        <button type="button" class="subtab-btn" data-subtab="trash">Silinenler</button>
       </nav>
 
       <div id="admin-subpanel-pharmacies" class="admin-subpanel">
@@ -293,6 +294,20 @@
           <p id="support-payout-error" class="error-text"></p>
         </div>
       </div>
+
+      <div id="admin-subpanel-trash" class="admin-subpanel hidden">
+        <div class="panel-card">
+          <h3>Silinen İşlemler (Son 3 Ay)</h3>
+          <p class="muted small">
+            İşlem Geçmişi'nde "Sil" ile kaldırılan kayıtların son 3 aylık kopyasıdır; kimin ne
+            zaman sildiğini görüp yanlışlıkla silme olup olmadığını kontrol etmek içindir.
+            Buradan geri yüklenmez, sadece görüntülenir.
+          </p>
+          <ul id="trash-list" class="tx-log">
+            <li class="muted">Yükleniyor...</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <section id="tab-panel-log" class="tab-panel hidden">
@@ -385,6 +400,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=29"></script>
+<script type="module" src="js/app.js?v=30"></script>
 </body>
 </html>

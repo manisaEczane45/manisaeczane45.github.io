@@ -16,6 +16,14 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
 
+    match /deleted_transactions/{id} {
+      // Son 3 aylık "çöp kutusu": sadece admin görebilir, sadece silme sırasında
+      // istemciden oluşturulur, değiştirilemez (değişmez kayıt).
+      allow read: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true;
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+    }
+
     match /transactions/{txId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.token.admin == true;
