@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=27">
+<link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
 
@@ -94,6 +94,28 @@
           </ul>
         </div>
       </div>
+
+      <div class="panel-card support-fund-card">
+        <h3>Destek Ekibi Ortak Bütçesi</h3>
+        <p class="muted small">
+          "Destek Ekibine Katkı Sağlar" olarak işaretli eczanelerden her ay toplanan pay burada
+          birikir; buradan da destek ekibi üyelerinin eczane hesaplarına aktarılır.
+        </p>
+        <div class="support-fund-stats">
+          <div class="support-fund-stat">
+            <span class="muted small">Güncel Bütçe</span>
+            <strong id="support-fund-balance">0 TL</strong>
+          </div>
+          <div class="support-fund-stat">
+            <span class="muted small">Bu Ay Toplanan</span>
+            <strong id="support-fund-month-collected">0 TL</strong>
+          </div>
+        </div>
+        <h4>Destek Ekibine Aktarılan Paylar</h4>
+        <ul id="support-payout-ranking-list" class="rank-list">
+          <li class="muted">Yükleniyor...</li>
+        </ul>
+      </div>
     </section>
 
     <section id="tab-panel-receivables" class="tab-panel hidden">
@@ -115,6 +137,7 @@
         <button type="button" class="subtab-btn active" data-subtab="pharmacies">Eczane Bakiyeleri</button>
         <button type="button" class="subtab-btn" data-subtab="drugs">İlaç Araçları</button>
         <button type="button" class="subtab-btn" data-subtab="receivables">Alacaklar Yönetimi</button>
+        <button type="button" class="subtab-btn" data-subtab="support">Destek Ekibi</button>
       </nav>
 
       <div id="admin-subpanel-pharmacies" class="admin-subpanel">
@@ -214,6 +237,57 @@
           <p class="muted">Yükleniyor...</p>
         </div>
       </div>
+
+      <div id="admin-subpanel-support" class="admin-subpanel hidden">
+        <div class="panel-card">
+          <h3>Aylık Tahsilat</h3>
+          <p class="muted small">
+            "Destek Ekibine Katkı Sağlar" olarak işaretli eczanelerden her ay 1000 TL pay
+            toplanır ve ortak bütçeye eklenir. Kasım 2026'dan itibaren geçerlidir.
+          </p>
+          <div class="dist-form-top">
+            <div class="field-group">
+              <label>Ay Seçin</label>
+              <input type="month" id="support-month-input" min="2026-11">
+            </div>
+          </div>
+          <div class="section-head-row">
+            <p class="muted small">Bu ay toplanan: <strong id="support-month-collected-admin">0 TL</strong></p>
+            <button type="button" id="support-collect-all-btn" class="btn btn-primary">Kalanları Toplu Tahsil Et</button>
+          </div>
+          <ul id="support-due-list" class="rank-list">
+            <li class="muted">Yükleniyor...</li>
+          </ul>
+          <p id="support-error" class="error-text"></p>
+        </div>
+
+        <div class="panel-card">
+          <h3>Ortak Bütçeden Eczaneye Aktarım</h3>
+          <p class="muted small">
+            Güncel bütçe: <strong id="support-fund-balance-admin">0 TL</strong>. "Destek
+            Ekibinden Pay Alır" olarak işaretli eczanelerden birini seçip ortak bütçeden payını
+            aktarın; tutar o eczanenin Toplam Cari'sine eklenir ve ortak bütçeden düşer.
+          </p>
+          <div class="dist-form-top">
+            <div class="field-group">
+              <label>Eczane</label>
+              <select id="support-payout-pharmacy-select"></select>
+            </div>
+            <div class="field-group">
+              <label>Tutar (TL)</label>
+              <input type="number" id="support-payout-amount" placeholder="8000" step="0.01" min="0">
+            </div>
+            <div class="field-group">
+              <label>Not (opsiyonel)</label>
+              <input type="text" id="support-payout-note" placeholder="Örn. Kasım ayı payı">
+            </div>
+          </div>
+          <div class="dist-actions">
+            <button type="button" id="support-payout-btn" class="btn btn-primary">Aktar</button>
+          </div>
+          <p id="support-payout-error" class="error-text"></p>
+        </div>
+      </div>
     </section>
 
     <section id="tab-panel-log" class="tab-panel hidden">
@@ -287,6 +361,10 @@
       <span><span class="muted">Toplam:</span> <span class="ph-total"></span></span>
       <span><span class="muted">Ödenen:</span> <span class="ph-paid"></span></span>
     </div>
+    <div class="admin-card-tags">
+      <label class="tag-toggle"><input type="checkbox" class="support-contributor-checkbox"> Destek Ekibine Katkı Sağlar</label>
+      <label class="tag-toggle"><input type="checkbox" class="support-recipient-checkbox"> Destek Ekibinden Pay Alır</label>
+    </div>
     <div class="admin-card-actions">
       <div class="field-group">
         <label>Yemek Kes</label>
@@ -302,6 +380,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=27"></script>
+<script type="module" src="js/app.js?v=28"></script>
 </body>
 </html>

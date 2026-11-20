@@ -1,11 +1,11 @@
-import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=27";
+import { firebaseConfig, LOGIN_EMAIL_DOMAIN } from "./firebase-config.js?v=28";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, onSnapshot, query, orderBy,
-  runTransaction, addDoc, serverTimestamp, getDocs, writeBatch, increment
+  runTransaction, addDoc, serverTimestamp, getDocs, writeBatch, increment, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
@@ -23,6 +23,9 @@ const paidRankingListEl = document.getElementById("paid-ranking-list");
 const totalRankingListEl = document.getElementById("total-ranking-list");
 const monthlyEarnedListEl = document.getElementById("monthly-earned-list");
 const totalEarnedValueEl = document.getElementById("total-earned-value");
+const supportFundBalanceEl = document.getElementById("support-fund-balance");
+const supportFundMonthCollectedEl = document.getElementById("support-fund-month-collected");
+const supportPayoutRankingListEl = document.getElementById("support-payout-ranking-list");
 const adminCardsEl = document.getElementById("admin-cards");
 const adminError = document.getElementById("admin-error");
 const txLogEl = document.getElementById("transaction-log");
@@ -55,6 +58,18 @@ const receivableInitialAmountInput = document.getElementById("receivable-initial
 const receivableAddBtn = document.getElementById("receivable-add-btn");
 const receivableFormError = document.getElementById("receivable-form-error");
 
+const supportMonthInput = document.getElementById("support-month-input");
+const supportMonthCollectedAdminEl = document.getElementById("support-month-collected-admin");
+const supportCollectAllBtn = document.getElementById("support-collect-all-btn");
+const supportDueListEl = document.getElementById("support-due-list");
+const supportError = document.getElementById("support-error");
+const supportFundBalanceAdminEl = document.getElementById("support-fund-balance-admin");
+const supportPayoutPharmacySelect = document.getElementById("support-payout-pharmacy-select");
+const supportPayoutAmountInput = document.getElementById("support-payout-amount");
+const supportPayoutNoteInput = document.getElementById("support-payout-note");
+const supportPayoutBtn = document.getElementById("support-payout-btn");
+const supportPayoutError = document.getElementById("support-payout-error");
+
 const tabButtons = document.querySelectorAll(".tab-btn");
 const adminTabBtn = document.getElementById("admin-tab-btn");
 const tabPanels = {
@@ -83,6 +98,7 @@ const adminSubpanels = {
   pharmacies: document.getElementById("admin-subpanel-pharmacies"),
   drugs: document.getElementById("admin-subpanel-drugs"),
   receivables: document.getElementById("admin-subpanel-receivables"),
+  support: document.getElementById("admin-subpanel-support"),
 };
 
 adminSubtabButtons.forEach((btn) => {
@@ -152,6 +168,27 @@ function buildReceivableCollectNote(label, amount, newBalance) {
   return `${label}: ${currency(amount)} tahsil edildi (kalan borç: ${currency(newBalance)})`;
 }
 
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabelTr(monthKey) {
+  const [year, month] = (monthKey || "").split("-");
+  const idx = parseInt(month, 10) - 1;
+  if (!year || Number.isNaN(idx) || !TR_MONTHS[idx]) return monthKey || "";
+  return `${TR_MONTHS[idx]} ${year}`;
+}
+
+function buildSupportCollectNote(pharmacyName, monthKey) {
+  return `${pharmacyName}: destek ekibi ortak bütçesi için ${monthLabelTr(monthKey)} payı ${currency(SUPPORT_MONTHLY_AMOUNT)} tahsil edildi`;
+}
+
+function buildSupportPayoutNote(pharmacyName, amount, note) {
+  const base = `Destek ekibi ortak bütçesinden ${pharmacyName} eczanesine ${currency(amount)} ayrıldı`;
+  return note ? `${base} (${note})` : base;
+}
+
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.textContent = "";
@@ -206,9 +243,11 @@ function subscribePharmacies() {
     pharmaciesCache.clear();
     snapshot.forEach((docSnap) => pharmaciesCache.set(docSnap.id, docSnap.data()));
     renderPharmacyRankings();
+    renderSupportFund();
     if (isAdmin) {
       renderAdminList();
       renderDistRows();
+      renderSupportPayoutSelect();
     }
   }, (err) => {
     [netRankingListEl, paidRankingListEl, totalRankingListEl].forEach((el) => {
@@ -238,7 +277,12 @@ function subscribeReceivables() {
 }
 
 const EDITABLE_KINDS = ["payment", "distribution", "total_update"];
-const DELETABLE_KINDS = ["payment", "distribution", "receivable_create", "receivable_add", "receivable_collect", "receivable_delete"];
+const DELETABLE_KINDS = [
+  "payment", "distribution", "receivable_create", "receivable_add", "receivable_collect", "receivable_delete",
+  "support_collect", "support_payout"
+];
+
+const SUPPORT_MONTHLY_AMOUNT = 1000;
 
 let allTxDocs = [];
 
@@ -248,6 +292,7 @@ function subscribeTransactions() {
     allTxDocs = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
     refreshTxView();
     renderMonthlyEarned();
+    renderSupportFund();
   }, (err) => {
     txLogEl.innerHTML = `<li class="error-text">İşlem geçmişi yüklenemedi.</li>`;
     console.error(err);
@@ -418,6 +463,8 @@ async function deleteTransaction(txId, tx) {
   const batch = writeBatch(db);
 
   if (tx.kind === "payment" && tx.pharmacyId) {
+    batch.update(doc(db, "pharmacies", tx.pharmacyId), { paidCari: increment(-(tx.amount || 0)) });
+  } else if (tx.kind === "support_collect" && tx.pharmacyId) {
     batch.update(doc(db, "pharmacies", tx.pharmacyId), { paidCari: increment(-(tx.amount || 0)) });
   } else if (tx.kind === "distribution" && tx.pharmacyId) {
     batch.update(doc(db, "pharmacies", tx.pharmacyId), { totalCari: increment(-(tx.amount || 0)) });
@@ -618,6 +665,24 @@ function renderAdminList() {
 
     card.querySelector(".ph-total").textContent = currency(data.totalCari || 0);
     card.querySelector(".ph-paid").textContent = currency(data.paidCari || 0);
+
+    const contributorCb = card.querySelector(".support-contributor-checkbox");
+    contributorCb.checked = data.supportContributor !== false;
+    contributorCb.addEventListener("change", () => {
+      updateDoc(doc(db, "pharmacies", id), { supportContributor: contributorCb.checked }).catch((err) => {
+        adminError.textContent = "Güncellenemedi.";
+        console.error(err);
+      });
+    });
+
+    const recipientCb = card.querySelector(".support-recipient-checkbox");
+    recipientCb.checked = data.supportRecipient === true;
+    recipientCb.addEventListener("change", () => {
+      updateDoc(doc(db, "pharmacies", id), { supportRecipient: recipientCb.checked }).catch((err) => {
+        adminError.textContent = "Güncellenemedi.";
+        console.error(err);
+      });
+    });
 
     const paymentInfoInput = card.querySelector(".payment-info-input");
     const paymentInput = card.querySelector(".payment-input");
@@ -1050,3 +1115,238 @@ async function deleteReceivable(id, companyName, contactName) {
     console.error(err);
   }
 }
+
+// --- Destek Ekibi Ortak Bütçesi ---
+// Katkı (support_collect): katkı sağlayan eczanenin paidCari'sini artırır (normal kesinti gibi).
+// Aktarım (support_payout): sadece işlem geçmişine yazılır; alıcı eczanenin Toplam/Güncel
+// Cari'sine KARIŞMAZ, ayrı bir "destek ekibi payı" olarak işlem geçmişinden hesaplanır.
+
+function supportContributorPharmacies() {
+  return [...pharmaciesCache.entries()].filter(([, data]) => data.supportContributor !== false);
+}
+
+function supportRecipientPharmacies() {
+  return [...pharmaciesCache.entries()].filter(([, data]) => data.supportRecipient === true);
+}
+
+function supportCollectedKeysForMonth(monthKey) {
+  const set = new Set();
+  for (const { data } of allTxDocs) {
+    if (data.kind === "support_collect" && data.month === monthKey && data.pharmacyId) {
+      set.add(data.pharmacyId);
+    }
+  }
+  return set;
+}
+
+function computeSupportFundTotals() {
+  let balance = 0;
+  const monthCollected = new Map();
+  const recipientTotals = new Map();
+
+  for (const { data } of allTxDocs) {
+    if (data.kind === "support_collect") {
+      balance += data.amount || 0;
+      if (data.month) {
+        monthCollected.set(data.month, (monthCollected.get(data.month) || 0) + (data.amount || 0));
+      }
+    } else if (data.kind === "support_payout") {
+      balance -= data.amount || 0;
+      const key = data.pharmacyName || "Bilinmiyor";
+      recipientTotals.set(key, (recipientTotals.get(key) || 0) + (data.amount || 0));
+    }
+  }
+
+  return { balance, monthCollected, recipientTotals };
+}
+
+function renderSupportFund() {
+  const { balance, monthCollected, recipientTotals } = computeSupportFundTotals();
+
+  if (supportFundBalanceEl) supportFundBalanceEl.textContent = currencyInt(balance);
+  if (supportFundMonthCollectedEl) {
+    supportFundMonthCollectedEl.textContent = currencyInt(monthCollected.get(currentMonthKey()) || 0);
+  }
+  if (supportFundBalanceAdminEl) supportFundBalanceAdminEl.textContent = currencyInt(balance);
+
+  if (supportPayoutRankingListEl) {
+    const byRecipient = [...recipientTotals.entries()]
+      .map(([name, value]) => ({ name: shortPharmacyName(name), value }))
+      .sort((a, b) => b.value - a.value);
+    renderRankingList(supportPayoutRankingListEl, byRecipient);
+  }
+
+  if (isAdmin) renderSupportDueList();
+}
+
+function renderSupportDueList() {
+  if (!supportDueListEl) return;
+  if (!supportMonthInput.value) supportMonthInput.value = currentMonthKey();
+  const monthKey = supportMonthInput.value;
+
+  const { monthCollected } = computeSupportFundTotals();
+  if (supportMonthCollectedAdminEl) {
+    supportMonthCollectedAdminEl.textContent = currencyInt(monthCollected.get(monthKey) || 0);
+  }
+
+  const members = supportContributorPharmacies().sort((a, b) => a[1].name.localeCompare(b[1].name, "tr"));
+  if (members.length === 0) {
+    supportDueListEl.innerHTML = `<li class="muted">Destek ekibine katkı sağlayan eczane yok.</li>`;
+    return;
+  }
+
+  const collectedIds = supportCollectedKeysForMonth(monthKey);
+
+  supportDueListEl.innerHTML = "";
+  members.forEach(([id, data]) => {
+    const li = document.createElement("li");
+    li.className = "rank-row";
+
+    const left = document.createElement("span");
+    left.className = "rank-left";
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "rank-name";
+    nameSpan.textContent = data.name;
+    left.appendChild(nameSpan);
+    li.appendChild(left);
+
+    if (collectedIds.has(id)) {
+      const badge = document.createElement("span");
+      badge.className = "balance-pill balance-positive";
+      badge.textContent = "Ödendi";
+      li.appendChild(badge);
+    } else {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-primary tx-edit-btn";
+      btn.textContent = "Tahsil Et";
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          await collectSupportDue(id, data.name, monthKey);
+        } catch (err) {
+          supportError.textContent = "Tahsilat başarısız oldu.";
+          console.error(err);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+      li.appendChild(btn);
+    }
+
+    supportDueListEl.appendChild(li);
+  });
+}
+
+function renderSupportPayoutSelect() {
+  if (!supportPayoutPharmacySelect) return;
+  const prevValue = supportPayoutPharmacySelect.value;
+  const recipients = supportRecipientPharmacies().sort((a, b) => a[1].name.localeCompare(b[1].name, "tr"));
+
+  supportPayoutPharmacySelect.innerHTML = "";
+  if (recipients.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Destek ekibinden pay alan eczane yok";
+    supportPayoutPharmacySelect.appendChild(opt);
+    supportPayoutPharmacySelect.disabled = true;
+    return;
+  }
+
+  supportPayoutPharmacySelect.disabled = false;
+  for (const [id, data] of recipients) {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = data.name;
+    supportPayoutPharmacySelect.appendChild(opt);
+  }
+  if (prevValue && recipients.some(([id]) => id === prevValue)) {
+    supportPayoutPharmacySelect.value = prevValue;
+  }
+}
+
+supportMonthInput.addEventListener("change", renderSupportDueList);
+
+async function collectSupportDue(pharmacyId, pharmacyName, monthKey) {
+  supportError.textContent = "";
+  const batch = writeBatch(db);
+  batch.update(doc(db, "pharmacies", pharmacyId), { paidCari: increment(SUPPORT_MONTHLY_AMOUNT) });
+  batch.set(doc(collection(db, "transactions")), {
+    pharmacyId,
+    pharmacyName,
+    kind: "support_collect",
+    amount: SUPPORT_MONTHLY_AMOUNT,
+    month: monthKey,
+    note: buildSupportCollectNote(pharmacyName, monthKey),
+    createdAt: serverTimestamp()
+  });
+  await batch.commit();
+}
+
+supportCollectAllBtn.addEventListener("click", async () => {
+  supportError.textContent = "";
+  if (!supportMonthInput.value) supportMonthInput.value = currentMonthKey();
+  const monthKey = supportMonthInput.value;
+
+  const members = supportContributorPharmacies();
+  const collectedIds = supportCollectedKeysForMonth(monthKey);
+  const pending = members.filter(([id]) => !collectedIds.has(id));
+
+  if (pending.length === 0) {
+    supportError.textContent = "Bu ay için tahsil edilecek eczane kalmadı.";
+    return;
+  }
+
+  supportCollectAllBtn.disabled = true;
+  try {
+    const batch = writeBatch(db);
+    for (const [id, data] of pending) {
+      batch.update(doc(db, "pharmacies", id), { paidCari: increment(SUPPORT_MONTHLY_AMOUNT) });
+      batch.set(doc(collection(db, "transactions")), {
+        pharmacyId: id,
+        pharmacyName: data.name,
+        kind: "support_collect",
+        amount: SUPPORT_MONTHLY_AMOUNT,
+        month: monthKey,
+        note: buildSupportCollectNote(data.name, monthKey),
+        createdAt: serverTimestamp()
+      });
+    }
+    await batch.commit();
+  } catch (err) {
+    supportError.textContent = "Toplu tahsilat başarısız oldu.";
+    console.error(err);
+  } finally {
+    supportCollectAllBtn.disabled = false;
+  }
+});
+
+supportPayoutBtn.addEventListener("click", async () => {
+  supportPayoutError.textContent = "";
+  const pharmacyId = supportPayoutPharmacySelect.value;
+  const pharmacyName = pharmaciesCache.get(pharmacyId)?.name;
+  const amount = parseFloat(supportPayoutAmountInput.value);
+  const note = supportPayoutNoteInput.value.trim();
+
+  if (!pharmacyId || !pharmacyName) { supportPayoutError.textContent = "Bir eczane seçin."; return; }
+  if (!Number.isFinite(amount) || amount <= 0) { supportPayoutError.textContent = "Geçerli bir tutar girin."; return; }
+
+  supportPayoutBtn.disabled = true;
+  try {
+    await addDoc(collection(db, "transactions"), {
+      pharmacyId,
+      pharmacyName,
+      kind: "support_payout",
+      amount,
+      note: buildSupportPayoutNote(pharmacyName, amount, note),
+      createdAt: serverTimestamp()
+    });
+    supportPayoutAmountInput.value = "";
+    supportPayoutNoteInput.value = "";
+  } catch (err) {
+    supportPayoutError.textContent = "Aktarım başarısız oldu.";
+    console.error(err);
+  } finally {
+    supportPayoutBtn.disabled = false;
+  }
+});
