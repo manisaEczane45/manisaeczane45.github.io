@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- GitHub Pages CDN'i statik dosyaları ~10dk önbelleğe alıyor; css/js değişince buradaki ve
      app.js'teki firebase-config.js importundaki ?v= numarasını birlikte artırın. -->
-<link rel="stylesheet" href="css/style.css?v=28">
+<link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body>
 
@@ -99,7 +99,8 @@
         <h3>Destek Ekibi Ortak Bütçesi</h3>
         <p class="muted small">
           "Destek Ekibine Katkı Sağlar" olarak işaretli eczanelerden her ay toplanan pay burada
-          birikir; buradan da destek ekibi üyelerinin eczane hesaplarına aktarılır.
+          birikir. Eczanelerin Toplam/Güncel Cari'sine karışmaz; buradan ayrılan paylar aşağıda
+          ayrı bir liste olarak takip edilir.
         </p>
         <div class="support-fund-stats">
           <div class="support-fund-stat">
@@ -240,10 +241,12 @@
 
       <div id="admin-subpanel-support" class="admin-subpanel hidden">
         <div class="panel-card">
-          <h3>Aylık Tahsilat</h3>
+          <h3>Aylık Destek Ekibi Yemek Kesme</h3>
           <p class="muted small">
-            "Destek Ekibine Katkı Sağlar" olarak işaretli eczanelerden her ay 1000 TL pay
-            toplanır ve ortak bütçeye eklenir. Kasım 2026'dan itibaren geçerlidir.
+            "Destek Ekibine Katkı Sağlar" olarak işaretli eczanelerden her ay 1000 TL yemek
+            kesintisi yapılır ve ortak bütçeye eklenir (eczanenin normal Ödenen/Güncel Carisinden
+            düşer). Kasım 2026'dan itibaren geçerlidir. Yanlışlıkla tahsil ederseniz İşlem
+            Geçmişi'nden ilgili kaydı "Sil" ile geri alabilirsiniz, bakiye otomatik düzelir.
           </p>
           <div class="dist-form-top">
             <div class="field-group">
@@ -262,11 +265,13 @@
         </div>
 
         <div class="panel-card">
-          <h3>Ortak Bütçeden Eczaneye Aktarım</h3>
+          <h3>Ortak Bütçeden Pay Ayırma</h3>
           <p class="muted small">
             Güncel bütçe: <strong id="support-fund-balance-admin">0 TL</strong>. "Destek
             Ekibinden Pay Alır" olarak işaretli eczanelerden birini seçip ortak bütçeden payını
-            aktarın; tutar o eczanenin Toplam Cari'sine eklenir ve ortak bütçeden düşer.
+            ayırın. Bu tutar o eczanenin Toplam/Güncel Cari'sine <strong>karışmaz</strong>;
+            sadece ortak bütçeden düşer ve ana sayfadaki "Destek Ekibine Aktarılan Paylar"
+            listesinde ayrı bir pay olarak görünür.
           </p>
           <div class="dist-form-top">
             <div class="field-group">
@@ -283,7 +288,7 @@
             </div>
           </div>
           <div class="dist-actions">
-            <button type="button" id="support-payout-btn" class="btn btn-primary">Aktar</button>
+            <button type="button" id="support-payout-btn" class="btn btn-primary">Pay Ayır</button>
           </div>
           <p id="support-payout-error" class="error-text"></p>
         </div>
@@ -380,6 +385,6 @@
   </article>
 </template>
 
-<script type="module" src="js/app.js?v=28"></script>
+<script type="module" src="js/app.js?v=29"></script>
 </body>
 </html>
